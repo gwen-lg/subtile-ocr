@@ -9,6 +9,7 @@ use iter_fixed::IntoIteratorFixed;
 use log::warn;
 use rayon::prelude::*;
 use subparse::timetypes::{TimePoint, TimeSpan};
+use subtile::{vobsub, SubError};
 
 pub struct PreprocessedVobSubtitle {
     pub time_span: TimeSpan,
@@ -16,7 +17,7 @@ pub struct PreprocessedVobSubtitle {
     pub images: Vec<GrayImage>,
 }
 
-pub type Result<T, E = vobsub::Error> = std::result::Result<T, E>;
+pub type Result<T, E = SubError> = std::result::Result<T, E>;
 
 /// Return a vector of binarized subtitles.
 pub fn preprocess_subtitles(opt: &Opt) -> Result<Vec<PreprocessedVobSubtitle>> {
