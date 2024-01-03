@@ -7,7 +7,6 @@ mod preprocessor;
 use crate::opt::Opt;
 use clap::Parser;
 use log::{warn, LevelFilter};
-use snafu::{ErrorCompat, ResultExt, Snafu};
 use std::{
     fs::File,
     io::{self, Write},
@@ -15,49 +14,52 @@ use std::{
 };
 use subparse::{timetypes::TimeSpan, SrtFile, SubtitleFile};
 use subtile::SubError;
+use thiserror::Error;
 
-#[derive(Debug, Snafu)]
+#[derive(Error, Debug)]
 enum Error {
-    #[snafu(display("Could not parse VOB subtitles from {}: {}", filename.display(), source))]
-    ReadSubtitles { filename: PathBuf, source: SubError },
+    #[error("Could not parse VOB subtitles from {}", path.display())]
+    ReadSubtitles { path: PathBuf, source: SubError },
 
-    #[snafu(display("Could not perform OCR on subtitles: {}", source))]
-    Ocr { source: ocr::Error },
+    #[error("Could not perform OCR on subtitles.")]
+    Ocr(#[from] ocr::Error),
 
-    #[snafu(display("Could not generate SRT file: {}", message))]
+    #[error("Could not generate SRT file: {message}")]
     GenerateSrt { message: String },
 
-    #[snafu(display("Could not write SRT file {}: {}", filename.display(), source))]
-    WriteSrt {
-        filename: PathBuf,
-        source: io::Error,
-    },
+    #[error("Could not write SRT file {}", path.display())]
+    WriteSrtFile { path: PathBuf, source: io::Error },
 
-    #[snafu(display("Could not write image dump file {}: {}", filename, source))]
+    #[error("Could not write SRT on stdout.")]
+    WriteSrtStdout { source: io::Error },
+
+    #[error("Could not write image dump file '{filename}'")]
     DumpImage {
         filename: String,
         source: image::ImageError,
     },
 }
 
-type Result<T, E = Error> = std::result::Result<T, E>;
-
-fn run(opt: Opt) -> Result<i32> {
-    let vobsubs = preprocessor::preprocess_subtitles(&opt).context(ReadSubtitlesSnafu {
-        filename: opt.input.clone(),
-    })?;
+fn run(opt: Opt) -> anyhow::Result<i32> {
+    let vobsubs =
+        preprocessor::preprocess_subtitles(&opt).map_err(|source| Error::ReadSubtitles {
+            path: opt.input.clone(),
+            source,
+        })?;
 
     // Dump images if requested.
     if opt.dump {
         for (i, sub) in vobsubs.iter().enumerate() {
             for (j, image) in sub.images.iter().enumerate() {
                 let filename = format!("{:06}-{:02}.png", i, j);
-                image.save(&filename).context(DumpImageSnafu { filename })?;
+                image
+                    .save(&filename)
+                    .map_err(|source| Error::DumpImage { filename, source })?;
             }
         }
     }
 
-    let subtitles = ocr::process(vobsubs, &opt).context(OcrSnafu {})?;
+    let subtitles = ocr::process(vobsubs, &opt)?;
 
     // Log errors and remove bad results.
     let mut return_code = 0;
@@ -74,40 +76,39 @@ fn run(opt: Opt) -> Result<i32> {
         .collect();
 
     // Create subtitle file.
-    let subtitles = SubtitleFile::SubRipFile(SrtFile::create(subtitles).map_err(|e| {
-        GenerateSrtSnafu {
+    let subtitles =
+        SubtitleFile::SubRipFile(SrtFile::create(subtitles).map_err(|e| Error::GenerateSrt {
             message: e.to_string(),
-        }
-        .build()
-    })?);
-    let subtitle_data = subtitles.to_data().map_err(|e| {
-        GenerateSrtSnafu {
-            message: e.to_string(),
-        }
-        .build()
+        })?);
+    let subtitle_data = subtitles.to_data().map_err(|e| Error::GenerateSrt {
+        message: e.to_string(),
     })?;
 
-    match opt.output {
-        Some(output) => {
+    write_srt(opt.output, &subtitle_data)?;
+
+    Ok(return_code)
+}
+
+fn write_srt(path: Option<PathBuf>, subtitle_data: &[u8]) -> Result<(), Error> {
+    match &path {
+        Some(path) => {
+            let mkerr = |source| Error::WriteSrtFile {
+                path: path.to_path_buf(),
+                source,
+            };
+
             // Write to file.
-            let mut subtitle_file = File::create(&output).context(WriteSrtSnafu {
-                filename: output.clone(),
-            })?;
-            subtitle_file
-                .write_all(&subtitle_data)
-                .context(WriteSrtSnafu { filename: output })?;
+            let mut subtitle_file = File::create(path).map_err(mkerr)?;
+            subtitle_file.write_all(subtitle_data).map_err(mkerr)?;
         }
         None => {
             // Write to stdout.
             io::stdout()
-                .write_all(&subtitle_data)
-                .context(WriteSrtSnafu {
-                    filename: "<stdout>",
-                })?;
+                .write_all(subtitle_data)
+                .map_err(|source| Error::WriteSrtStdout { source })?;
         }
     }
-
-    Ok(return_code)
+    Ok(())
 }
 
 fn main() {
@@ -121,10 +122,11 @@ fn main() {
         Ok(rc) => rc,
         Err(e) => {
             eprintln!("An error occured: {}", e);
-            if let Some(backtrace) = ErrorCompat::backtrace(&e) {
-                println!("{}", backtrace);
-            }
-            1
+            e.chain().for_each(|x| println!("  {x}"));
+            // if let Some(backtrace) = ErrorCompat::backtrace(&e) {
+            //     println!("{}", backtrace);
+            // }
+            1 //TODO: 1 is error ?
         }
     };
     std::process::exit(code);

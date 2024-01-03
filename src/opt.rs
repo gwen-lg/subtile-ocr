@@ -1,19 +1,17 @@
 use clap::{crate_description, crate_name, crate_version};
 use clap::{Parser, ValueHint};
 use leptess::Variable;
-use snafu::Snafu;
 use std::path::PathBuf;
+use thiserror::Error;
 
-#[derive(Debug, Snafu)]
+#[derive(Error, Debug)]
 enum Error {
-    #[snafu(display("No `=` in key-value pair {}", value))]
+    #[error("No `=` in key-value pair {value}")]
     ParseKeyValuePair { value: String },
 
-    #[snafu(display("Invalid tesseract variable name: {}", value))]
+    #[error("Invalid tesseract variable name: {value}")]
     TesseractVariableName { value: String },
 }
-
-type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[derive(Parser, Debug)]
 #[clap(name = crate_name!(), about = crate_description!(), version = crate_version!())]
@@ -78,7 +76,7 @@ fn parse_key_val(s: &str) -> Result<(Variable, String), Error> {
     ))
 }
 
-fn parse_tesseract_variable(s: impl AsRef<str>) -> Result<Variable> {
+fn parse_tesseract_variable(s: impl AsRef<str>) -> Result<Variable, Error> {
     Ok(match s.as_ref() {
         "classify_num_cp_levels" => Variable::ClassifyNumCpLevels,
         "textord_dotmatrix_gap" => Variable::TextordDotmatrixGap,
