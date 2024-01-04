@@ -6,7 +6,7 @@ mod preprocessor;
 
 pub use crate::ocr::process as ocr_process;
 pub use crate::opt::Opt;
-pub use crate::preprocessor::preprocess_subtitles;
+pub use crate::preprocessor::{preprocess_subtitles, ImagePreprocessOpt};
 
 use log::warn;
 use std::{
@@ -47,7 +47,8 @@ pub enum Error {
 
 pub fn run(opt: &Opt) -> anyhow::Result<()> {
     let idx = vobsub::Index::open(&opt.input)?;
-    let vobsubs = preprocessor::preprocess_subtitles(idx, opt)?;
+    let image_opt = ImagePreprocessOpt::new(opt.threshold, opt.border);
+    let vobsubs = preprocessor::preprocess_subtitles(idx, image_opt)?;
 
     // Dump images if requested.
     if opt.dump {

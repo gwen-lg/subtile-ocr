@@ -3,13 +3,23 @@ use std::{
     ops::Range,
 };
 
-use crate::opt::Opt;
 use image::{GrayImage, ImageBuffer, Luma};
 use iter_fixed::IntoIteratorFixed;
 use log::warn;
 use rayon::prelude::*;
 use subparse::timetypes::{TimePoint, TimeSpan};
 use subtile::{vobsub, SubError};
+
+pub struct ImagePreprocessOpt {
+    threshold: f32,
+    border: u32,
+}
+
+impl ImagePreprocessOpt {
+    pub fn new(threshold: f32, border: u32) -> Self {
+        Self { threshold, border }
+    }
+}
 
 pub struct PreprocessedVobSubtitle {
     pub time_span: TimeSpan,
@@ -20,7 +30,7 @@ pub struct PreprocessedVobSubtitle {
 /// Return a vector of binarized subtitles.
 pub fn preprocess_subtitles(
     idx: vobsub::Index,
-    opt: &Opt,
+    opt: ImagePreprocessOpt,
 ) -> Result<Vec<PreprocessedVobSubtitle>, SubError> {
     let subtitles: Vec<vobsub::Subtitle> = idx
         .subtitles()
