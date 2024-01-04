@@ -5,6 +5,7 @@ mod opt;
 mod preprocessor;
 
 use crate::opt::Opt;
+use anyhow::Context;
 use clap::Parser;
 use log::{warn, LevelFilter};
 use std::{
@@ -18,8 +19,8 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 enum Error {
-    #[error("Could not parse VOB subtitles from {}", path.display())]
-    ReadSubtitles { path: PathBuf, source: SubError },
+    #[error("Could not parse VOB subtitles.")]
+    ReadSubtitles(#[from] SubError),
 
     #[error("Could not perform OCR on subtitles.")]
     Ocr(#[from] ocr::Error),
@@ -43,12 +44,8 @@ enum Error {
     },
 }
 
-fn run(opt: Opt) -> anyhow::Result<()> {
-    let vobsubs =
-        preprocessor::preprocess_subtitles(&opt).map_err(|source| Error::ReadSubtitles {
-            path: opt.input.clone(),
-            source,
-        })?;
+fn run(opt: &Opt) -> anyhow::Result<()> {
+    let vobsubs = preprocessor::preprocess_subtitles(opt)?;
 
     // Dump images if requested.
     if opt.dump {
@@ -62,7 +59,7 @@ fn run(opt: Opt) -> anyhow::Result<()> {
         }
     }
 
-    let subtitles = ocr::process(vobsubs, &opt)?;
+    let subtitles = ocr::process(vobsubs, opt)?;
 
     // Log errors and remove bad results.
     let mut ocr_error_count = 0;
@@ -87,7 +84,7 @@ fn run(opt: Opt) -> anyhow::Result<()> {
         message: e.to_string(),
     })?;
 
-    write_srt(opt.output, &subtitle_data)?;
+    write_srt(&opt.output, &subtitle_data)?;
 
     if ocr_error_count > 0 {
         Err(Error::OcrFails(ocr_error_count).into())
@@ -96,7 +93,7 @@ fn run(opt: Opt) -> anyhow::Result<()> {
     }
 }
 
-fn write_srt(path: Option<PathBuf>, subtitle_data: &[u8]) -> Result<(), Error> {
+fn write_srt(path: &Option<PathBuf>, subtitle_data: &[u8]) -> Result<(), Error> {
     match &path {
         Some(path) => {
             let mkerr = |source| Error::WriteSrtFile {
@@ -125,5 +122,11 @@ fn main() -> anyhow::Result<()> {
         .env()
         .init()
         .unwrap();
-    run(Opt::parse())
+    let opt = Opt::parse();
+    run(&opt).with_context(|| {
+        format!(
+            "Could not convert '{}' to 'srt'.",
+            opt.input.clone().display()
+        )
+    })
 }
