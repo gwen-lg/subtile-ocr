@@ -125,16 +125,5 @@ fn main() -> anyhow::Result<()> {
         .env()
         .init()
         .unwrap();
-    let code = match run(Opt::parse()) {
-        Ok(()) => 0,
-        Err(e) => {
-            eprintln!("An error occured: {}", e);
-            e.chain().for_each(|x| println!("  {x}"));
-            // if let Some(backtrace) = ErrorCompat::backtrace(&e) {
-            //     println!("{}", backtrace);
-            // }
-            1 //TODO: 1 is error ?
-        }
-    };
-    std::process::exit(code);
+    run(Opt::parse())
 }
