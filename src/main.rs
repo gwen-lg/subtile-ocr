@@ -24,6 +24,9 @@ enum Error {
     #[error("Could not perform OCR on subtitles.")]
     Ocr(#[from] ocr::Error),
 
+    #[error("Error happen during OCR on {0} subtitles images")]
+    OcrFails(u32),
+
     #[error("Could not generate SRT file: {message}")]
     GenerateSrt { message: String },
 
@@ -40,7 +43,7 @@ enum Error {
     },
 }
 
-fn run(opt: Opt) -> anyhow::Result<i32> {
+fn run(opt: Opt) -> anyhow::Result<()> {
     let vobsubs =
         preprocessor::preprocess_subtitles(&opt).map_err(|source| Error::ReadSubtitles {
             path: opt.input.clone(),
@@ -62,14 +65,14 @@ fn run(opt: Opt) -> anyhow::Result<i32> {
     let subtitles = ocr::process(vobsubs, &opt)?;
 
     // Log errors and remove bad results.
-    let mut return_code = 0;
+    let mut ocr_error_count = 0;
     let subtitles: Vec<(TimeSpan, String)> = subtitles
         .into_iter()
         .filter_map(|maybe_subtitle| match maybe_subtitle {
             Ok(subtitle) => Some(subtitle),
             Err(e) => {
                 warn!("Error while running OCR on subtitle image: {}", e);
-                return_code = 1;
+                ocr_error_count += 1;
                 None
             }
         })
@@ -86,7 +89,11 @@ fn run(opt: Opt) -> anyhow::Result<i32> {
 
     write_srt(opt.output, &subtitle_data)?;
 
-    Ok(return_code)
+    if ocr_error_count > 0 {
+        Err(Error::OcrFails(ocr_error_count).into())
+    } else {
+        Ok(())
+    }
 }
 
 fn write_srt(path: Option<PathBuf>, subtitle_data: &[u8]) -> Result<(), Error> {
@@ -111,7 +118,7 @@ fn write_srt(path: Option<PathBuf>, subtitle_data: &[u8]) -> Result<(), Error> {
     Ok(())
 }
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     simple_logger::SimpleLogger::new()
         .without_timestamps()
         .with_level(LevelFilter::Warn)
@@ -119,7 +126,7 @@ fn main() {
         .init()
         .unwrap();
     let code = match run(Opt::parse()) {
-        Ok(rc) => rc,
+        Ok(()) => 0,
         Err(e) => {
             eprintln!("An error occured: {}", e);
             e.chain().for_each(|x| println!("  {x}"));
