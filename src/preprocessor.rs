@@ -17,10 +17,8 @@ pub struct PreprocessedVobSubtitle {
     pub images: Vec<GrayImage>,
 }
 
-pub type Result<T, E = SubError> = std::result::Result<T, E>;
-
 /// Return a vector of binarized subtitles.
-pub fn preprocess_subtitles(opt: &Opt) -> Result<Vec<PreprocessedVobSubtitle>> {
+pub fn preprocess_subtitles(opt: &Opt) -> Result<Vec<PreprocessedVobSubtitle>, SubError> {
     let idx = vobsub::Index::open(&opt.input)?;
     let subtitles: Vec<vobsub::Subtitle> = idx
         .subtitles()
