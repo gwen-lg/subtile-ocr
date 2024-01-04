@@ -18,8 +18,10 @@ pub struct PreprocessedVobSubtitle {
 }
 
 /// Return a vector of binarized subtitles.
-pub fn preprocess_subtitles(opt: &Opt) -> Result<Vec<PreprocessedVobSubtitle>, SubError> {
-    let idx = vobsub::Index::open(&opt.input)?;
+pub fn preprocess_subtitles(
+    idx: vobsub::Index,
+    opt: &Opt,
+) -> Result<Vec<PreprocessedVobSubtitle>, SubError> {
     let subtitles: Vec<vobsub::Subtitle> = idx
         .subtitles()
         .filter_map(|sub| match sub {

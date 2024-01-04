@@ -14,7 +14,7 @@ use std::{
     path::PathBuf,
 };
 use subparse::{timetypes::TimeSpan, SrtFile, SubtitleFile};
-use subtile::SubError;
+use subtile::{vobsub, SubError};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -45,7 +45,8 @@ enum Error {
 }
 
 fn run(opt: &Opt) -> anyhow::Result<()> {
-    let vobsubs = preprocessor::preprocess_subtitles(opt)?;
+    let idx = vobsub::Index::open(&opt.input)?;
+    let vobsubs = preprocessor::preprocess_subtitles(idx, opt)?;
 
     // Dump images if requested.
     if opt.dump {
