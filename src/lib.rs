@@ -56,8 +56,38 @@ pub fn run(opt: &Opt) -> anyhow::Result<()> {
     }
 
     let subtitles = ocr::process(vobsubs, opt)?;
+    let subtitles = check_subtitles(subtitles)?;
 
-    // Log errors and remove bad results.
+    // Create subtitle file.
+    let subtitles =
+        SubtitleFile::SubRipFile(SrtFile::create(subtitles).map_err(|e| Error::GenerateSrt {
+            message: e.to_string(),
+        })?);
+    let subtitle_data = subtitles.to_data().map_err(|e| Error::GenerateSrt {
+        message: e.to_string(),
+    })?;
+
+    write_srt(&opt.output, &subtitle_data)?;
+
+    Ok(())
+}
+
+fn dump_images(vobsubs: &[preprocessor::PreprocessedVobSubtitle]) -> Result<(), Error> {
+    for (i, sub) in vobsubs.iter().enumerate() {
+        for (j, image) in sub.images.iter().enumerate() {
+            let filename = format!("{:06}-{:02}.png", i, j);
+            image
+                .save(&filename)
+                .map_err(|source| Error::DumpImage { filename, source })?;
+        }
+    }
+    Ok(())
+}
+
+/// Log errors and remove bad results.
+pub fn check_subtitles(
+    subtitles: Vec<Result<(TimeSpan, String), ocr::Error>>,
+) -> Result<Vec<(TimeSpan, String)>, Error> {
     let mut ocr_error_count = 0;
     let subtitles: Vec<(TimeSpan, String)> = subtitles
         .into_iter()
@@ -71,34 +101,11 @@ pub fn run(opt: &Opt) -> anyhow::Result<()> {
         })
         .collect();
 
-    // Create subtitle file.
-    let subtitles =
-        SubtitleFile::SubRipFile(SrtFile::create(subtitles).map_err(|e| Error::GenerateSrt {
-            message: e.to_string(),
-        })?);
-    let subtitle_data = subtitles.to_data().map_err(|e| Error::GenerateSrt {
-        message: e.to_string(),
-    })?;
-
-    write_srt(&opt.output, &subtitle_data)?;
-
     if ocr_error_count > 0 {
-        Err(Error::OcrFails(ocr_error_count).into())
+        Err(Error::OcrFails(ocr_error_count))
     } else {
-        Ok(())
+        Ok(subtitles)
     }
-}
-
-fn dump_images(vobsubs: &[preprocessor::PreprocessedVobSubtitle]) -> Result<(), Error> {
-    for (i, sub) in vobsubs.iter().enumerate() {
-        for (j, image) in sub.images.iter().enumerate() {
-            let filename = format!("{:06}-{:02}.png", i, j);
-            image
-                .save(&filename)
-                .map_err(|source| Error::DumpImage { filename, source })?;
-        }
-    }
-    Ok(())
 }
 
 fn write_srt(path: &Option<PathBuf>, subtitle_data: &[u8]) -> Result<(), Error> {
