@@ -72,16 +72,26 @@ pub fn run(opt: &Opt) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// dump all images
 fn dump_images(vobsubs: &[preprocessor::PreprocessedVobSubtitle]) -> Result<(), Error> {
-    for (i, sub) in vobsubs.iter().enumerate() {
-        for (j, image) in sub.images.iter().enumerate() {
-            let filename = format!("{:06}-{:02}.png", i, j);
-            image
-                .save(&filename)
-                .map_err(|source| Error::DumpImage { filename, source })?;
-        }
-    }
-    Ok(())
+    vobsubs.iter().enumerate().try_for_each(|(i, sub)| {
+        sub.images
+            .iter()
+            .enumerate()
+            .try_for_each(|(j, image)| dump_image(i, j, image))
+    })
+}
+
+/// dump one image
+fn dump_image(
+    i: usize,
+    j: usize,
+    image: &image::ImageBuffer<image::Luma<u8>, Vec<u8>>,
+) -> Result<(), Error> {
+    let filename = format!("{:06}-{:02}.png", i, j);
+    image
+        .save(&filename)
+        .map_err(|source| Error::DumpImage { filename, source })
 }
 
 /// Log errors and remove bad results.
