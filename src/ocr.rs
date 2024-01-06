@@ -1,6 +1,6 @@
 use std::{io::Cursor, str::Utf8Error};
 
-use crate::{opt::Opt, preprocessor::PreprocessedVobSubtitle};
+use crate::preprocessor::PreprocessedVobSubtitle;
 use image::{
     codecs::pnm::{PnmSubtype, SampleEncoding},
     DynamicImage, GrayImage,
@@ -16,6 +16,30 @@ use subparse::timetypes::TimeSpan;
 use thiserror::Error;
 
 scoped_thread_local!(static mut TESSERACT: Option<TesseractWrapper>);
+
+/// Options for orc with Tesseract
+pub struct OcrOpt<'a> {
+    tessdata_dir: &'a Option<String>,
+    lang: &'a str,
+    config: &'a Vec<(Variable, String)>,
+    dpi: i32,
+}
+
+impl<'a> OcrOpt<'a> {
+    pub fn new(
+        tessdata_dir: &'a Option<String>,
+        lang: &'a str,
+        config: &'a Vec<(Variable, String)>,
+        dpi: i32,
+    ) -> Self {
+        Self {
+            tessdata_dir,
+            lang,
+            config,
+            dpi,
+        }
+    }
+}
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -42,7 +66,7 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 pub fn process(
     vobsubs: Vec<PreprocessedVobSubtitle>,
-    opt: &Opt,
+    opt: &OcrOpt,
 ) -> Result<Vec<Result<(TimeSpan, String)>>> {
     std::env::set_var("OMP_THREAD_LIMIT", "1");
     let subs = rayon::ThreadPoolBuilder::new().build_scoped(
@@ -65,8 +89,8 @@ pub fn process(
                                         None => {
                                             let tesseract = TesseractWrapper::new(
                                                 opt.tessdata_dir.as_deref(),
-                                                &opt.lang,
-                                                &opt.config,
+                                                opt.lang,
+                                                opt.config,
                                             )?;
                                             maybe_tesseract.insert(tesseract)
                                         }

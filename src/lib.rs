@@ -4,7 +4,7 @@ mod ocr;
 mod opt;
 mod preprocessor;
 
-pub use crate::ocr::process as ocr_process;
+pub use crate::ocr::{process as ocr_process, OcrOpt};
 pub use crate::opt::Opt;
 pub use crate::preprocessor::{preprocess_subtitles, ImagePreprocessOpt};
 
@@ -55,7 +55,8 @@ pub fn run(opt: &Opt) -> anyhow::Result<()> {
         dump_images(&vobsubs)?;
     }
 
-    let subtitles = ocr::process(vobsubs, opt)?;
+    let ocr_opt = OcrOpt::new(&opt.tessdata_dir, opt.lang.as_str(), &opt.config, opt.dpi);
+    let subtitles = ocr::process(vobsubs, &ocr_opt)?;
     let subtitles = check_subtitles(subtitles)?;
 
     // Create subtitle file.
