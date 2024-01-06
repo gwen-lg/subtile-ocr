@@ -4,7 +4,9 @@ mod ocr;
 mod opt;
 mod preprocessor;
 
+pub use crate::ocr::process as ocr_process;
 pub use crate::opt::Opt;
+pub use crate::preprocessor::preprocess_subtitles;
 
 use log::warn;
 use std::{
@@ -17,7 +19,7 @@ use subtile::{vobsub, SubError};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-enum Error {
+pub enum Error {
     #[error("Could not parse VOB subtitles.")]
     ReadSubtitles(#[from] SubError),
 
