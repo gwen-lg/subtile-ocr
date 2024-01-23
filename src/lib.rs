@@ -44,6 +44,7 @@ pub enum Error {
     },
 }
 
+#[profiling::function]
 pub fn run(opt: &Opt) -> anyhow::Result<()> {
     let idx = vobsub::Index::open(&opt.input)?;
     let image_opt = ImagePreprocessOpt::new(opt.threshold, opt.border);
@@ -65,6 +66,7 @@ pub fn run(opt: &Opt) -> anyhow::Result<()> {
 }
 
 /// dump all images
+#[profiling::function]
 fn dump_images(vobsubs: &[preprocessor::PreprocessedVobSubtitle]) -> Result<(), Error> {
     vobsubs.iter().enumerate().try_for_each(|(i, sub)| {
         sub.images
@@ -75,6 +77,7 @@ fn dump_images(vobsubs: &[preprocessor::PreprocessedVobSubtitle]) -> Result<(), 
 }
 
 /// dump one image
+#[profiling::function]
 fn dump_image(
     i: usize,
     j: usize,
@@ -87,6 +90,8 @@ fn dump_image(
 }
 
 /// Log errors and remove bad results.
+
+#[profiling::function]
 pub fn check_subtitles(
     subtitles: Vec<Result<(TimeSpan, String), ocr::Error>>,
 ) -> Result<Vec<(TimeSpan, String)>, Error> {
@@ -110,6 +115,7 @@ pub fn check_subtitles(
     }
 }
 
+#[profiling::function]
 fn write_srt(path: &Option<PathBuf>, subtitles: &[(TimeSpan, String)]) -> Result<(), Error> {
     match &path {
         Some(path) => {

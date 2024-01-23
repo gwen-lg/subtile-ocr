@@ -30,6 +30,7 @@ pub struct PreprocessedVobSubtitle {
 }
 
 /// Return a vector of binarized subtitles.
+#[profiling::function]
 pub fn preprocess_subtitles(
     idx: vobsub::Index,
     opt: ImagePreprocessOpt,
@@ -96,6 +97,7 @@ fn rgb_palette_to_luminance(palette: &vobsub::Palette) -> [f32; 16] {
 
 /// Given a subtitle, binarize, invert, and split the image into multiple lines
 /// with borders for direct feeding into Tesseract.
+#[profiling::function]
 fn subtitle_to_images(
     subtitle: &vobsub::Subtitle,
     palette: &[f32; 16],
@@ -152,6 +154,7 @@ fn subtitle_to_images(
 /// transparent ones. Checking each and every single pixel in the image like
 /// this is probably not strictly necessary, but it could theoretically catch an
 /// edge case.
+#[profiling::function]
 fn generate_visibility_palette(subtitle: &vobsub::Subtitle) -> [bool; 4] {
     let mut sub_palette_visibility =
         subtitle
@@ -171,6 +174,7 @@ fn generate_visibility_palette(subtitle: &vobsub::Subtitle) -> [bool; 4] {
 }
 
 /// Generate a binarized palette where `true` represents a filled text pixel.
+#[profiling::function]
 fn binarize_palette(
     palette: &[f32; 16],
     sub_palette: &[u8; 4],
@@ -212,6 +216,7 @@ fn binarize_palette(
 /// Inventory each scanline of the image, recording if a given scanline has
 /// text pixels, and if it does, the left and right extents of the pixels on
 /// the scanline.
+#[profiling::function]
 fn inventory_scanlines(
     subtitle: &vobsub::Subtitle,
     palette: &[bool; 4],
@@ -259,6 +264,7 @@ fn inventory_scanlines(
 }
 
 /// Find ranges of contiguous, filled scanlines.
+#[profiling::function]
 fn find_contiguous_scanline_groups(scanlines: &[Option<ScanlineExtent>]) -> Vec<Range<usize>> {
     let mut scanline_groups: Vec<Range<usize>> = Vec::new();
     let mut scanline_ix = 0;
@@ -286,6 +292,7 @@ fn find_contiguous_scanline_groups(scanlines: &[Option<ScanlineExtent>]) -> Vec<
 
 /// Given the list of scanlines and a list of contiguous groups, calculate image regions that
 /// encompass the extents.
+#[profiling::function]
 fn scanline_groups_to_image_regions(
     scanlines: &[Option<ScanlineExtent>],
     scanline_groups: &[Range<usize>],
