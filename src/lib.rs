@@ -46,7 +46,10 @@ pub enum Error {
 
 #[profiling::function]
 pub fn run(opt: &Opt) -> anyhow::Result<()> {
-    let idx = vobsub::Index::open(&opt.input)?;
+    let idx = {
+        profiling::scope!("Open idx");
+        vobsub::Index::open(&opt.input)?
+    };
     let image_opt = ImagePreprocessOpt::new(opt.threshold, opt.border);
     let vobsubs = preprocessor::preprocess_subtitles(idx, image_opt)?;
 

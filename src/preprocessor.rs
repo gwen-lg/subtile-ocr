@@ -35,19 +35,21 @@ pub fn preprocess_subtitles(
     idx: vobsub::Index,
     opt: ImagePreprocessOpt,
 ) -> Result<Vec<PreprocessedVobSubtitle>, SubError> {
-    let subtitles: Vec<vobsub::Subtitle> = idx
-        .subtitles()
-        .filter_map(|sub| match sub {
-            Ok(sub) => Some(sub),
-            Err(e) => {
-                warn!(
+    let subtitles: Vec<vobsub::Subtitle> = {
+        profiling::scope!("Parse subtitles");
+        idx.subtitles()
+            .filter_map(|sub| match sub {
+                Ok(sub) => Some(sub),
+                Err(e) => {
+                    warn!(
                     "warning: unable to read subtitle: {}. (This can usually be safely ignored.)",
                     e
                 );
-                None
-            }
-        })
-        .collect();
+                    None
+                }
+            })
+            .collect()
+    };
     let palette = rgb_palette_to_luminance(idx.palette());
     let result = subtitles
         .par_iter()

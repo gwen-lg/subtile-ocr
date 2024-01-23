@@ -85,6 +85,7 @@ pub fn process(
                             .into_iter()
                             .map(|image| {
                                 TESSERACT.with(|maybe_tesseract| {
+                                    profiling::scope!("tesseract_ocr");
                                     let tesseract = match maybe_tesseract {
                                         Some(tesseract) => tesseract,
                                         None => {
@@ -120,6 +121,8 @@ impl TesseractWrapper {
         language: impl AsRef<str>,
         config: &[(Variable, String)],
     ) -> Result<Self> {
+        profiling::scope!("TesseractWrapper new");
+
         let mut leptess = LepTess::new(datapath, language.as_ref())?;
         // Disable learning by default, though a user could re-enable this
         // option with `-c`. We turn this off since we are are multithreading,
