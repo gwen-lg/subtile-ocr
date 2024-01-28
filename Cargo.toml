@@ -22,6 +22,5 @@ log = "0.4"
 rayon = "1.8"
 scoped-tls-hkt = "0.1.4"
 simple_logger = { version = "4.3", features = ["colors"] }
-subparse = "0.7.0"
 subtile = "0.1"
 thiserror = "1.0"
