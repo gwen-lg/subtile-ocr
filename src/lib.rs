@@ -46,6 +46,11 @@ pub enum Error {
 
 #[profiling::function]
 pub fn run(opt: &Opt) -> anyhow::Result<()> {
+    rayon::ThreadPoolBuilder::new()
+        .thread_name(|idx| format!("Rayon_{idx}"))
+        .build_global() // _global
+        .unwrap();
+
     let idx = {
         profiling::scope!("Open idx");
         vobsub::Index::open(&opt.input)?
