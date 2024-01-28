@@ -153,26 +153,14 @@ fn subtitle_to_images(
 /// this is probably not strictly necessary, but it could theoretically catch an
 /// edge case.
 fn generate_visibility_palette(subtitle: &vobsub::Subtitle) -> [bool; 4] {
-    let mut sub_palette_visibility = subtitle
-        .raw_image()
-        .par_iter()
-        .fold(
-            || [false; 4],
-            |mut visible: [bool; 4], &sub_palette_ix| {
+    let mut sub_palette_visibility =
+        subtitle
+            .raw_image()
+            .iter()
+            .fold([false; 4], |mut visible: [bool; 4], &sub_palette_ix| {
                 visible[sub_palette_ix as usize] = true;
                 visible
-            },
-        )
-        .reduce(
-            || [false; 4],
-            |mut a: [bool; 4], b: [bool; 4]| {
-                a[0] = a[0] || b[0];
-                a[1] = a[1] || b[1];
-                a[2] = a[2] || b[2];
-                a[3] = a[3] || b[3];
-                a
-            },
-        );
+            });
     // The alpha palette is reversed.
     for (i, &alpha) in subtitle.alpha().iter().rev().enumerate() {
         if alpha == 0 {
