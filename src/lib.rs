@@ -11,11 +11,10 @@ pub use crate::preprocessor::{preprocess_subtitles, ImagePreprocessOpt};
 use log::warn;
 use std::{
     fs::File,
-    io::{self, Write},
+    io::{self, BufWriter},
     path::PathBuf,
 };
-use subparse::{SrtFile, SubtitleFile};
-use subtile::{time::TimeSpan, vobsub, SubError};
+use subtile::{srt, time::TimeSpan, vobsub, SubError};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -60,15 +59,7 @@ pub fn run(opt: &Opt) -> anyhow::Result<()> {
     let subtitles = check_subtitles(subtitles)?;
 
     // Create subtitle file.
-    let subtitles =
-        SubtitleFile::SubRipFile(SrtFile::create(subtitles).map_err(|e| Error::GenerateSrt {
-            message: e.to_string(),
-        })?);
-    let subtitle_data = subtitles.to_data().map_err(|e| Error::GenerateSrt {
-        message: e.to_string(),
-    })?;
-
-    write_srt(&opt.output, &subtitle_data)?;
+    write_srt(&opt.output, &subtitles)?;
 
     Ok(())
 }
@@ -119,7 +110,7 @@ pub fn check_subtitles(
     }
 }
 
-fn write_srt(path: &Option<PathBuf>, subtitle_data: &[u8]) -> Result<(), Error> {
+fn write_srt(path: &Option<PathBuf>, subtitles: &[(TimeSpan, String)]) -> Result<(), Error> {
     match &path {
         Some(path) => {
             let mkerr = |source| Error::WriteSrtFile {
@@ -128,13 +119,14 @@ fn write_srt(path: &Option<PathBuf>, subtitle_data: &[u8]) -> Result<(), Error> 
             };
 
             // Write to file.
-            let mut subtitle_file = File::create(path).map_err(mkerr)?;
-            subtitle_file.write_all(subtitle_data).map_err(mkerr)?;
+            let subtitle_file = File::create(path).map_err(mkerr)?;
+            let mut stream = BufWriter::new(subtitle_file);
+            srt::write_srt(subtitles, &mut stream).map_err(mkerr)?;
         }
         None => {
             // Write to stdout.
-            io::stdout()
-                .write_all(subtitle_data)
+            let mut stdout = io::stdout();
+            srt::write_srt(subtitles, &mut stdout)
                 .map_err(|source| Error::WriteSrtStdout { source })?;
         }
     }
