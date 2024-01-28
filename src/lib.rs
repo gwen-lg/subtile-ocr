@@ -14,8 +14,8 @@ use std::{
     io::{self, Write},
     path::PathBuf,
 };
-use subparse::{timetypes::TimeSpan, SrtFile, SubtitleFile};
-use subtile::{vobsub, SubError};
+use subparse::{SrtFile, SubtitleFile};
+use subtile::{time::TimeSpan, vobsub, SubError};
 use thiserror::Error;
 
 #[derive(Error, Debug)]

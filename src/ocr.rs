@@ -12,7 +12,7 @@ use leptess::{
 };
 use rayon::prelude::*;
 use scoped_tls_hkt::scoped_thread_local;
-use subparse::timetypes::TimeSpan;
+use subtile::time::TimeSpan;
 use thiserror::Error;
 
 scoped_thread_local!(static mut TESSERACT: Option<TesseractWrapper>);
