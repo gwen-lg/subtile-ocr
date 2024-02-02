@@ -1,5 +1,5 @@
 [package]
-name = "vobsubocr"
+name = "subtile-ocr"
 version = "0.1.1"
 authors = ["Eliza Velasquez"]
 edition = "2018"
@@ -7,8 +7,8 @@ description = "Converts DVD VOB subtitles to SRT subtitles with Tesseract OCR"
 license = "GPL-3.0"
 keywords = ["vobsub", "subtitles", "dvd", "ocr"]
 categories = ["command-line-utilities", "multimedia", "multimedia::video"]
-repository = "https://github.com/elizagamedev/vobsubocr/"
-homepage = "https://github.com/elizagamedev/vobsubocr/"
+repository = "https://github.com/gwen-lg/subtile-ocr"
+homepage = "https://github.com/gwen-lg/subtile-ocr"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
