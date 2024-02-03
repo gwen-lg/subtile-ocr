@@ -817,6 +817,7 @@ dependencies = [
  "iter_fixed",
  "leptess",
  "log",
+ "profiling",
  "rayon",
  "scoped-tls-hkt",
  "simple_logger",
