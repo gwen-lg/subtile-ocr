@@ -1,4 +1,5 @@
-name: Continus Integration
+name: CI - Code Checks & Tests
+run-name: Checks Rust code on ${{ github.event_name }}
 
 on:
   push:
@@ -16,14 +17,14 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  check_and_clippy:
+  ci_code_checks_and_tests:
     runs-on: ubuntu-22.04
     env:
       RUSTFLAGS: "-D warnings"
     strategy:
       fail-fast: false
 
-    name: Cargo clippy, test, fmt & doc
+    name: Code Checks and Tests
 
     steps:
       - name: "Install dependencies Ubuntu"
