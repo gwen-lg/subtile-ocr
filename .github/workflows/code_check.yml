@@ -23,8 +23,10 @@ jobs:
       RUSTFLAGS: "-D warnings"
     strategy:
       fail-fast: false
+      matrix:
+        features: [default, profile-with-puffin]
 
-    name: Code Checks and Tests
+    name: Code Checks for ${{ matrix.features }} feature(s)
 
     steps:
       - name: "Install dependencies Ubuntu"
@@ -49,13 +51,13 @@ jobs:
         id: cargo_clippy
         if: $${{ always() }}
         run: |
-          cargo clippy --profile=test -- -D warnings
+          cargo clippy --profile=test --features ${{ matrix.features }} -- -D warnings
 
       - name: "Cargo test"
         id: cargo_test
         if: $${{ always() }}
         run: |
-          cargo test
+          cargo test --features ${{ matrix.features }}
 
       - name: "Cargo formatting"
         id: cargo_fmt
