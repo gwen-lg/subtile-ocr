@@ -25,6 +25,8 @@ scoped-tls-hkt = "0.1.4"
 simple_logger = { version = "4.3", features = ["colors"] }
 subtile = "0.1"
 thiserror = "1.0"
+puffin = { version = "0.19", features =["serialization"], optional = true }
 
 [features]
-profile-with-puffin = ["profiling/profile-with-puffin"]
+default = []
+profile-with-puffin = ["profiling/profile-with-puffin", "dep:puffin"]
