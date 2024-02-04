@@ -44,6 +44,7 @@ mod no_profiling {
 
 #[cfg(feature = "profile-with-puffin")]
 mod puffin_profiling {
+    use chrono::Local;
     use profiling::puffin::{self, GlobalFrameView};
     use std::fs::{self, File};
 
@@ -54,8 +55,11 @@ mod puffin_profiling {
     }
 
     pub fn write_perf_file(global_frame_view: GlobalFrameView) -> anyhow::Result<()> {
+        let now = Local::now().format("%Y-%m-%d-%T").to_string();
+        let filename = format!("perf/capture_{}.puffin", now);
+
         fs::create_dir_all("perf")?;
-        let mut file = File::create("perf/capture.puffin")?;
+        let mut file = File::create(filename)?;
         let frame_view = global_frame_view.lock();
         (*frame_view).write(&mut file)?;
         Ok(())
