@@ -80,28 +80,22 @@ pub fn process(
                 vobsubs
                     .into_par_iter()
                     .map(|vobsub| {
-                        let text = vobsub
-                            .images
-                            .into_iter()
-                            .map(|image| {
-                                TESSERACT.with(|maybe_tesseract| {
-                                    profiling::scope!("tesseract_ocr");
-                                    let tesseract = match maybe_tesseract {
-                                        Some(tesseract) => tesseract,
-                                        None => {
-                                            let tesseract = TesseractWrapper::new(
-                                                opt.tessdata_dir.as_deref(),
-                                                opt.lang,
-                                                opt.config,
-                                            )?;
-                                            maybe_tesseract.insert(tesseract)
-                                        }
-                                    };
-                                    tesseract.set_image(image, opt.dpi)?;
-                                    tesseract.get_text()
-                                })
-                            })
-                            .collect::<Result<String>>()?;
+                        let text = TESSERACT.with(|maybe_tesseract| {
+                            profiling::scope!("tesseract_ocr");
+                            let tesseract = match maybe_tesseract {
+                                Some(tesseract) => tesseract,
+                                None => {
+                                    let tesseract = TesseractWrapper::new(
+                                        opt.tessdata_dir.as_deref(),
+                                        opt.lang,
+                                        opt.config,
+                                    )?;
+                                    maybe_tesseract.insert(tesseract)
+                                }
+                            };
+                            tesseract.set_image(vobsub.image, opt.dpi)?;
+                            tesseract.get_text()
+                        })?;
                         Ok((vobsub.time_span, text))
                     })
                     .collect::<Vec<Result<(TimeSpan, String)>>>()
@@ -128,9 +122,9 @@ impl TesseractWrapper {
         // option with `-c`. We turn this off since we are are multithreading,
         // so this option would result in non-deterministic output.
         leptess.set_variable(leptess::Variable::ClassifyEnableLearning, "0")?;
-        // 7 is PSM_SINGLE_LINE. We have preprocessed the input into individual
+        // 6 is PSM_SINGLE_BLOCK. We have preprocessed the input into individual
         // lines, and telling Tesseract this fact greatly improves accuracy.
-        leptess.set_variable(leptess::Variable::TesseditPagesegMode, "7")?;
+        leptess.set_variable(leptess::Variable::TesseditPagesegMode, "6")?;
         // Avoid interpreting the characters I, l as |
         leptess.set_variable(leptess::Variable::TesseditCharBlacklist, "|")?;
         // Add user options.

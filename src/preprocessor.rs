@@ -1,8 +1,3 @@
-use std::{
-    cmp::{max, min},
-    ops::Range,
-};
-
 use image::{GrayImage, ImageBuffer, Luma};
 use iter_fixed::IntoIteratorFixed;
 use log::warn;
@@ -29,7 +24,7 @@ impl ImagePreprocessOpt {
 pub struct PreprocessedVobSubtitle {
     pub time_span: TimeSpan,
     pub force: bool,
-    pub images: Vec<GrayImage>,
+    pub image: GrayImage,
 }
 
 /// Return a vector of binarized subtitles.
@@ -57,33 +52,19 @@ pub fn preprocess_subtitles(
     let result = subtitles
         .par_iter()
         .filter_map(|sub| {
-            subtitle_to_images(sub, &palette, opt.threshold, opt.border).map(|images| {
+            subtitle_to_image(sub, &palette, opt.threshold, opt.border).map(|image| {
                 PreprocessedVobSubtitle {
                     time_span: TimeSpan::new(
                         seconds_to_time_point(sub.start_time()),
                         seconds_to_time_point(sub.end_time()),
                     ),
                     force: sub.force(),
-                    images,
+                    image,
                 }
             })
         })
         .collect();
     Ok(result)
-}
-
-/// Represents the left and right boundaries on a scanline.
-#[derive(Debug)]
-struct ScanlineExtent {
-    left: usize,
-    right: usize,
-}
-
-/// Represents a square subregion of an image, x by y.
-#[derive(Debug)]
-struct ImageRegion {
-    x: Range<usize>,
-    y: Range<usize>,
 }
 
 fn seconds_to_time_point(seconds: f64) -> TimePoint {
@@ -100,15 +81,15 @@ fn rgb_palette_to_luminance(palette: &vobsub::Palette) -> [f32; 16] {
     })
 }
 
-/// Given a subtitle, binarize, invert, and split the image into multiple lines
-/// with borders for direct feeding into Tesseract.
+/// Given a subtitle, binarize, invert, and add a border
+/// for direct feeding into Tesseract.
 #[profiling::function]
-fn subtitle_to_images(
+fn subtitle_to_image(
     subtitle: &vobsub::Subtitle,
     palette: &[f32; 16],
     threshold: f32,
     border: u32,
-) -> Option<Vec<GrayImage>> {
+) -> Option<GrayImage> {
     let sub_palette_visibility = generate_visibility_palette(subtitle);
 
     let binarized_palette = binarize_palette(
@@ -118,41 +99,23 @@ fn subtitle_to_images(
         threshold,
     );
 
-    let scanlines = inventory_scanlines(subtitle, &binarized_palette);
-    let scanline_groups = find_contiguous_scanline_groups(&scanlines);
-    if scanline_groups.is_empty() {
-        // No images found.
-        return None;
-    }
+    let width = u32::from(subtitle.area().width());
+    let height = u32::from(subtitle.area().height());
 
-    let image_regions = scanline_groups_to_image_regions(&scanlines, &scanline_groups);
-
-    let raw_image_width = u32::from(subtitle.area().width());
-
-    Some(
-        image_regions
-            .into_par_iter()
-            .map(|region| {
-                let x0 = region.x.start as u32;
-                let y0 = region.y.start as u32;
-                let width = region.x.len() as u32;
-                let height = region.y.len() as u32;
-                ImageBuffer::from_fn(width + border * 2, height + border * 2, |x, y| {
-                    if x < border || x >= width + border || y < border || y >= height + border {
-                        Luma([255])
-                    } else {
-                        let offset = (y0 + (y - border)) * raw_image_width + x0 + (x - border);
-                        let sub_palette_ix = subtitle.raw_image()[offset as usize] as usize;
-                        if binarized_palette[sub_palette_ix] {
-                            Luma([0])
-                        } else {
-                            Luma([255])
-                        }
-                    }
-                })
-            })
-            .collect(),
-    )
+    let image = ImageBuffer::from_fn(width + border * 2, height + border * 2, |x, y| {
+        if x < border || x >= width + border || y < border || y >= height + border {
+            Luma([255])
+        } else {
+            let offset = (y - border) * width + (x - border);
+            let sub_palette_ix = subtitle.raw_image()[offset as usize] as usize;
+            if binarized_palette[sub_palette_ix] {
+                Luma([0])
+            } else {
+                Luma([255])
+            }
+        }
+    });
+    Some(image)
 }
 
 /// Find all the palette indices used in this image, and filter out the
@@ -213,114 +176,6 @@ fn binarize_palette(
                 luminance > threshold
             } else {
                 false
-            }
-        })
-        .collect()
-}
-
-/// Inventory each scanline of the image, recording if a given scanline has
-/// text pixels, and if it does, the left and right extents of the pixels on
-/// the scanline.
-#[profiling::function]
-fn inventory_scanlines(
-    subtitle: &vobsub::Subtitle,
-    palette: &[bool; 4],
-) -> Vec<Option<ScanlineExtent>> {
-    let width = subtitle.area().width() as usize;
-    let height = subtitle.area().height() as usize;
-    (0..height)
-        .into_par_iter()
-        .map(|y| {
-            (0..width)
-                .into_par_iter()
-                .fold(
-                    || None,
-                    |scanline: Option<ScanlineExtent>, x| {
-                        let offset = y * width + x;
-                        let palette_ix = subtitle.raw_image()[offset] as usize;
-                        if palette[palette_ix] {
-                            match scanline {
-                                Some(extent) => Some(ScanlineExtent {
-                                    left: min(x, extent.left),
-                                    right: max(x, extent.right),
-                                }),
-                                None => Some(ScanlineExtent { left: x, right: x }),
-                            }
-                        } else {
-                            scanline
-                        }
-                    },
-                )
-                .reduce(
-                    || None,
-                    |a: Option<ScanlineExtent>, b: Option<ScanlineExtent>| match a {
-                        Some(extent_a) => match b {
-                            Some(extent_b) => Some(ScanlineExtent {
-                                left: min(extent_a.left, extent_b.left),
-                                right: max(extent_a.right, extent_b.right),
-                            }),
-                            None => Some(extent_a),
-                        },
-                        None => b,
-                    },
-                )
-        })
-        .collect()
-}
-
-/// Find ranges of contiguous, filled scanlines.
-#[profiling::function]
-fn find_contiguous_scanline_groups(scanlines: &[Option<ScanlineExtent>]) -> Vec<Range<usize>> {
-    let mut scanline_groups: Vec<Range<usize>> = Vec::new();
-    let mut scanline_ix = 0;
-    while scanline_ix < scanlines.len() {
-        // Find the start of the next range of contiguous scanlines.
-        match scanlines.iter().skip(scanline_ix).position(|x| x.is_some()) {
-            Some(start_ix_offset) => {
-                // Find the end of this range.
-                let end_ix = match scanlines
-                    .iter()
-                    .skip(scanline_ix + start_ix_offset)
-                    .position(|x| x.is_none())
-                {
-                    Some(end_ix_offset) => scanline_ix + start_ix_offset + end_ix_offset,
-                    None => scanlines.len(),
-                };
-                scanline_groups.push((scanline_ix + start_ix_offset)..end_ix);
-                scanline_ix = end_ix;
-            }
-            None => break,
-        }
-    }
-    scanline_groups
-}
-
-/// Given the list of scanlines and a list of contiguous groups, calculate image regions that
-/// encompass the extents.
-#[profiling::function]
-fn scanline_groups_to_image_regions(
-    scanlines: &[Option<ScanlineExtent>],
-    scanline_groups: &[Range<usize>],
-) -> Vec<ImageRegion> {
-    scanline_groups
-        .iter()
-        .map(|y_range| {
-            let mut left = usize::MAX;
-            let mut right = usize::MIN;
-            for y in y_range.clone() {
-                // Unwrap here, since we should have filtered out all None
-                // scanlines before calling this.
-                let x = scanlines[y].as_ref().unwrap();
-                if x.left < left {
-                    left = x.left;
-                }
-                if x.right > right {
-                    right = x.right;
-                }
-            }
-            ImageRegion {
-                x: left..right + 1,
-                y: y_range.clone(),
             }
         })
         .collect()

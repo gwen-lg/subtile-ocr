@@ -98,12 +98,10 @@ pub fn run(opt: &Opt) -> anyhow::Result<()> {
 /// dump all images
 #[profiling::function]
 fn dump_images(vobsubs: &[preprocessor::PreprocessedVobSubtitle]) -> Result<(), Error> {
-    vobsubs.iter().enumerate().try_for_each(|(i, sub)| {
-        sub.images
-            .iter()
-            .enumerate()
-            .try_for_each(|(j, image)| dump_image(i, j, image))
-    })
+    vobsubs
+        .iter()
+        .enumerate()
+        .try_for_each(|(i, sub)| dump_image(i, 0, &sub.image))
 }
 
 /// dump one image
