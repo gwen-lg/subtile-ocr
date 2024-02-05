@@ -26,7 +26,7 @@ impl ImagePreprocessOpt {
 pub struct PreprocessedVobSubtitle {
     pub time_span: TimeSpan,
     pub force: bool,
-    pub images: Vec<GrayImage>,
+    pub image: GrayImage,
 }
 
 /// Return a vector of binarized subtitles.
@@ -54,14 +54,14 @@ pub fn preprocess_subtitles(
     let result = subtitles
         .par_iter()
         .filter_map(|sub| {
-            subtitle_to_images(sub, &palette, opt.threshold, opt.border).map(|images| {
+            subtitle_to_image(sub, &palette, opt.threshold, opt.border).map(|image| {
                 PreprocessedVobSubtitle {
                     time_span: TimeSpan::new(
                         seconds_to_time_point(sub.start_time()),
                         seconds_to_time_point(sub.end_time()),
                     ),
                     force: sub.force(),
-                    images,
+                    image,
                 }
             })
         })
@@ -97,15 +97,15 @@ fn rgb_palette_to_luminance(palette: &vobsub::Palette) -> [f32; 16] {
     })
 }
 
-/// Given a subtitle, binarize, invert, and split the image into multiple lines
-/// with borders for direct feeding into Tesseract.
+/// Given a subtitle, binarize, invert, and add a border
+/// for direct feeding into Tesseract.
 #[profiling::function]
-fn subtitle_to_images(
+fn subtitle_to_image(
     subtitle: &vobsub::Subtitle,
     palette: &[f32; 16],
     threshold: f32,
     border: u32,
-) -> Option<Vec<GrayImage>> {
+) -> Option<GrayImage> {
     let sub_palette_visibility = generate_visibility_palette(subtitle);
 
     let binarized_palette = binarize_palette(
@@ -115,41 +115,23 @@ fn subtitle_to_images(
         threshold,
     );
 
-    let scanlines = inventory_scanlines(subtitle, &binarized_palette);
-    let scanline_groups = find_contiguous_scanline_groups(&scanlines);
-    if scanline_groups.is_empty() {
-        // No images found.
-        return None;
-    }
+    let width = subtitle.coordinates().width() as u32;
+    let height = subtitle.coordinates().height() as u32;
 
-    let image_regions = scanline_groups_to_image_regions(&scanlines, &scanline_groups);
-
-    let raw_image_width = subtitle.coordinates().width() as u32;
-
-    Some(
-        image_regions
-            .into_par_iter()
-            .map(|region| {
-                let x0 = region.x.start as u32;
-                let y0 = region.y.start as u32;
-                let width = region.x.len() as u32;
-                let height = region.y.len() as u32;
-                ImageBuffer::from_fn(width + border * 2, height + border * 2, |x, y| {
-                    if x < border || x >= width + border || y < border || y >= height + border {
-                        Luma([255])
-                    } else {
-                        let offset = (y0 + (y - border)) * raw_image_width + x0 + (x - border);
-                        let sub_palette_ix = subtitle.raw_image()[offset as usize] as usize;
-                        if binarized_palette[sub_palette_ix] {
-                            Luma([0])
-                        } else {
-                            Luma([255])
-                        }
-                    }
-                })
-            })
-            .collect(),
-    )
+    let image = ImageBuffer::from_fn(width + border * 2, height + border * 2, |x, y| {
+        if x < border || x >= width + border || y < border || y >= height + border {
+            Luma([255])
+        } else {
+            let offset = (y - border) * width + (x - border);
+            let sub_palette_ix = subtitle.raw_image()[offset as usize] as usize;
+            if binarized_palette[sub_palette_ix] {
+                Luma([0])
+            } else {
+                Luma([255])
+            }
+        }
+    });
+    Some(image)
 }
 
 /// Find all the palette indices used in this image, and filter out the
