@@ -131,6 +131,8 @@ impl TesseractWrapper {
         // 7 is PSM_SINGLE_LINE. We have preprocessed the input into individual
         // lines, and telling Tesseract this fact greatly improves accuracy.
         leptess.set_variable(leptess::Variable::TesseditPagesegMode, "7")?;
+        // Avoid interpreting the characters I, l as |
+        leptess.set_variable(leptess::Variable::TesseditCharBlacklist, "|")?;
         // Add user options.
         for (key, value) in config {
             leptess.set_variable(*key, value)?;
