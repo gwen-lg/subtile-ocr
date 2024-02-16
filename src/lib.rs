@@ -4,11 +4,7 @@ mod ocr;
 mod opt;
 mod preprocessor;
 
-pub use crate::{
-    ocr::{process as ocr_process, OcrOpt},
-    opt::Opt,
-    preprocessor::process_images_for_ocr,
-};
+pub use crate::{ocr::OcrOpt, opt::Opt, preprocessor::process_images_for_ocr};
 
 use log::warn;
 use std::{

@@ -1,4 +1,4 @@
-use std::{io::Cursor, str::Utf8Error};
+use std::{cell::RefCell, io::Cursor, str::Utf8Error};
 
 use image::{DynamicImage, GrayImage};
 use leptess::{
@@ -6,11 +6,9 @@ use leptess::{
     tesseract::{TessInitError, TessSetVariableError},
     LepTess, Variable,
 };
-use rayon::prelude::*;
-use scoped_tls_hkt::scoped_thread_local;
+use log::trace;
+use rayon::{broadcast, prelude::*};
 use thiserror::Error;
-
-scoped_thread_local!(static mut TESSERACT: Option<TesseractWrapper>);
 
 /// Options for orc with Tesseract
 pub struct OcrOpt<'a> {
@@ -40,9 +38,6 @@ impl<'a> OcrOpt<'a> {
 
 #[derive(Error, Debug)]
 pub enum Error {
-    #[error("Could not build tesseract thread pool")]
-    BuildThreadPool(#[from] rayon::ThreadPoolBuildError),
-
     #[error("Could not initialize tesseract")]
     Initialize(#[from] TessInitError),
 
@@ -61,42 +56,52 @@ pub enum Error {
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
-/// Process OCR for subtitle images.
+thread_local! {
+    static TESSERACT: RefCell<Option<TesseractWrapper>> = const { RefCell::new(None) };
+}
+
+/// Process subtitles images with Tesseract `OCR`.
 #[profiling::function]
 pub fn process(images: Vec<GrayImage>, opt: &OcrOpt) -> Result<Vec<Result<String>>> {
     std::env::set_var("OMP_THREAD_LIMIT", "1");
-    let subs = rayon::ThreadPoolBuilder::new().build_scoped(
-        |thread| {
-            let mut tesseract = None;
-            TESSERACT.set(&mut tesseract, || thread.run())
-        },
-        |pool| {
-            pool.install(|| {
-                images
-                    .into_par_iter()
-                    .map(|image| {
-                        let text = TESSERACT.with(|maybe_tesseract| {
-                            profiling::scope!("tesseract_ocr");
-                            let tesseract = match maybe_tesseract {
-                                Some(tesseract) => tesseract,
-                                None => {
-                                    let tesseract = TesseractWrapper::new(
-                                        opt.tessdata_dir.as_deref(),
-                                        opt.lang,
-                                        opt.config,
-                                    )?;
-                                    maybe_tesseract.insert(tesseract)
-                                }
-                            };
-                            tesseract.set_image(image, opt.dpi)?;
-                            tesseract.get_text()
-                        })?;
-                        Ok(text)
-                    })
-                    .collect::<Vec<Result<String>>>()
-            })
-        },
-    )?;
+    // Init tesseract
+    broadcast(|ctx| {
+        profiling::scope!("Tesseract Init Wrapper");
+        trace!(
+            "Init tesseract with lang `{}` on thread {}",
+            opt.lang,
+            ctx.index()
+        );
+        let tesseract =
+            TesseractWrapper::new(opt.tessdata_dir.as_deref(), opt.lang, opt.config).unwrap();
+        let old = TESSERACT.replace(Some(tesseract));
+        assert!(old.is_none());
+    });
+
+    // Process images
+    let subs = images
+        .into_par_iter()
+        .map(|image| {
+            let text = TESSERACT.with(|tesseract| {
+                profiling::scope!("tesseract_ocr");
+                let mut tesseract = tesseract.borrow_mut();
+                let tesseract = tesseract.as_mut().unwrap();
+                tesseract.set_image(image, opt.dpi)?;
+                tesseract.get_text()
+            })?;
+            Ok(text)
+        })
+        .collect::<Vec<Result<String>>>();
+
+    // Clean tesseract from Thread local vars
+    broadcast(|ctx| {
+        profiling::scope!("Tesseract Drop Wrapper");
+        trace!("Drop TesseractWrapper local var on thread {}", ctx.index());
+        if let Some(tesseract) = TESSERACT.take() {
+            drop(tesseract);
+        }
+    });
+
     Ok(subs)
 }
 
