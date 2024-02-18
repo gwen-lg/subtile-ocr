@@ -6,6 +6,7 @@ mod preprocessor;
 
 pub use crate::{ocr::OcrOpt, opt::Opt};
 
+use image::GrayImage;
 use log::warn;
 use preprocessor::rgb_palette_to_luminance;
 use rayon::{
@@ -13,12 +14,14 @@ use rayon::{
     ThreadPoolBuildError,
 };
 use std::{
+    ffi::OsStr,
     fs::File,
-    io::{self, BufWriter},
+    io::{self, BufReader, BufWriter},
     path::PathBuf,
 };
 use subtile::{
-    image::{dump_images, ToOcrImage, ToOcrImageOpt},
+    image::{dump_images, luma_a_to_luma, ToOcrImage, ToOcrImageOpt},
+    pgs::{self, DecodeTimeImage, RleToImage},
     srt,
     time::TimeSpan,
     vobsub::{self, VobSubError, VobSubIndexedImage, VobSubOcrImage},
@@ -33,11 +36,20 @@ pub enum Error {
     #[error("Failed to create a rayon ThreadPool.")]
     RayonThreadPool(#[from] ThreadPoolBuildError),
 
-    #[error("Could not parse VOB subtitles.")]
-    ReadSubtitles(#[from] SubtileError),
+    #[error("The file extension '{extension}' is not managed.")]
+    InvalidFileExtension { extension: String },
+
+    #[error("The file doesn't have a valid extension, can't choose a parser.")]
+    NoFileExtension,
 
     #[error("Failed to open Index file.")]
     IndexOpen(#[source] VobSubError),
+
+    #[error("Failed to create PgsParser from file")]
+    PgsParserFromFile(#[source] pgs::PgsError),
+
+    #[error("Failed to parse Pgs")]
+    PgsParsing(#[source] pgs::PgsError),
 
     #[error("Failed to dump subtitles images")]
     DumpImage(#[source] SubtileError),
@@ -63,8 +75,10 @@ pub enum Error {
 /// # Errors
 ///
 /// Will return [`Error::RayonThreadPool`] if `build_global` of the `ThreadPool` rayon failed.
-/// Will return [`Error::IndexOpen`] if the subtitle files can't be opened.
-/// Will return [`Error::DumpImage`] if an error occurred during dump.
+/// Will return [`Error::InvalidFileExtension`] if the file extension is not managed.
+/// Will return [`Error::NoFileExtension`] if the file have no extension.
+/// Will return [`Error::WriteSrtFile`] of [`Error::WriteSrtStdout`] if failed to write subtitles as `srt`.
+/// Will forward error from `ocr` processing and [`check_subtitles`] if any.
 #[profiling::function]
 pub fn run(opt: &Opt) -> Result<(), Error> {
     rayon::ThreadPoolBuilder::new()
@@ -72,6 +86,76 @@ pub fn run(opt: &Opt) -> Result<(), Error> {
         .build_global()
         .map_err(Error::RayonThreadPool)?;
 
+    let (times, images) = match opt.input.extension().and_then(OsStr::to_str) {
+        Some(ext) => match ext {
+            "sup" => process_pgs(opt),
+            "idx" => process_vobsub(opt),
+            ext => Err(Error::InvalidFileExtension {
+                extension: ext.into(),
+            }),
+        },
+        None => Err(Error::NoFileExtension),
+    }?;
+
+    // Dump images if requested.
+    if opt.dump {
+        dump_images("dumps", &images).map_err(Error::DumpImage)?;
+    }
+
+    let ocr_opt = OcrOpt::new(&opt.tessdata_dir, opt.lang.as_str(), &opt.config, opt.dpi);
+    let texts = ocr::process(images, &ocr_opt)?;
+    let subtitles = check_subtitles(times.into_iter().zip(texts))?;
+
+    // Create subtitle file.
+    write_srt(&opt.output, &subtitles)?;
+
+    Ok(())
+}
+
+/// Process `PGS` subtitle file
+///
+/// # Errors
+///
+/// Will return [`Error::PgsParserFromFile`] if SupParser failed to be init from file.
+/// Will return [`Error::PgsParsing`] if the parsing of subtitles failed.
+/// Will return [`Error::DumpImage`] if the dump of raw image failed.
+#[profiling::function]
+pub fn process_pgs(opt: &Opt) -> Result<(Vec<TimeSpan>, Vec<GrayImage>), Error> {
+    let parser = {
+        profiling::scope!("Create PGS parser");
+        subtile::pgs::SupParser::<BufReader<File>, DecodeTimeImage>::from_file(&opt.input)
+            .map_err(Error::PgsParserFromFile)?
+    };
+
+    let (times, rle_images) = {
+        profiling::scope!("Parse PGS file");
+        parser
+            .collect::<Result<(Vec<_>, Vec<_>), _>>()
+            .map_err(Error::PgsParsing)?
+    };
+
+    let conv_fn = luma_a_to_luma::<_, _, 100, 100>; // Hardcoded value for alpha and luma threshold than work not bad.
+
+    let images = {
+        profiling::scope!("Convert images for OCR");
+        let ocr_opt = ocr_opt(opt);
+        rle_images
+            .par_iter()
+            .map(|rle_img| RleToImage::new(rle_img, &conv_fn).image(&ocr_opt))
+            .collect::<Vec<_>>()
+    };
+
+    Ok((times, images))
+}
+
+/// Process `VobSub` subtitle file
+///
+/// # Errors
+///
+/// Will return [`Error::IndexOpen`] if the subtitle files can't be opened.
+/// Will return [`Error::DumpImage`] if the dump of raw image failed.
+#[profiling::function]
+pub fn process_vobsub(opt: &Opt) -> Result<(Vec<TimeSpan>, Vec<GrayImage>), Error> {
     let idx = {
         profiling::scope!("Open idx");
         vobsub::Index::open(&opt.input).map_err(Error::IndexOpen)?
@@ -83,8 +167,8 @@ pub fn run(opt: &Opt) -> Result<(), Error> {
                 Ok(sub) => Some(sub),
                 Err(e) => {
                     warn!(
-                    "warning: unable to read subtitle: {e}. (This can usually be safely ignored.)"
-                );
+        "warning: unable to read subtitle: {e}. (This can usually be safely ignored.)"
+    );
                     None
                 }
             })
@@ -105,19 +189,7 @@ pub fn run(opt: &Opt) -> Result<(), Error> {
             .collect::<Vec<_>>()
     };
 
-    // Dump images if requested.
-    if opt.dump {
-        dump_images("dumps", &images_for_ocr).map_err(Error::DumpImage)?;
-    }
-
-    let ocr_opt = OcrOpt::new(&opt.tessdata_dir, opt.lang.as_str(), &opt.config, opt.dpi);
-    let texts = ocr::process(images_for_ocr, &ocr_opt)?;
-    let subtitles = check_subtitles(times.into_iter().zip(texts))?;
-
-    // Create subtitle file.
-    write_srt(&opt.output, &subtitles)?;
-
-    Ok(())
+    Ok((times, images_for_ocr))
 }
 
 /// Create [`ToOcrImageOpt`] from [`Opt`]
