@@ -28,6 +28,9 @@ pub enum Error {
     #[error("Could not parse VOB subtitles.")]
     ReadSubtitles(#[from] SubtileError),
 
+    #[error("Failed to dump subtitles images")]
+    DumpImage(#[source] SubtileError),
+
     #[error("Could not perform OCR on subtitles.")]
     Ocr(#[from] ocr::Error),
 
@@ -45,6 +48,10 @@ pub enum Error {
 }
 
 /// Run OCR for `opt`.
+///
+/// # Errors
+///
+/// Will return [`Error::DumpImage`] if an error occurred during dump.
 #[profiling::function]
 pub fn run(opt: &Opt) -> anyhow::Result<()> {
     rayon::ThreadPoolBuilder::new()
@@ -76,7 +83,7 @@ pub fn run(opt: &Opt) -> anyhow::Result<()> {
 
     // Dump images if requested.
     if opt.dump {
-        dump_images("dumps", &images_for_ocr)?;
+        dump_images("dumps", &images_for_ocr).map_err(Error::DumpImage)?;
     }
 
     let ocr_opt = OcrOpt::new(&opt.tessdata_dir, opt.lang.as_str(), &opt.config, opt.dpi);
