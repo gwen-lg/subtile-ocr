@@ -62,7 +62,10 @@ thread_local! {
 
 /// Process subtitles images with Tesseract `OCR`.
 #[profiling::function]
-pub fn process(images: Vec<GrayImage>, opt: &OcrOpt) -> Result<Vec<Result<String>>> {
+pub fn process<Img>(images: Img, opt: &OcrOpt) -> Result<Vec<Result<String>>>
+where
+    Img: IntoParallelIterator<Item = GrayImage>,
+{
     std::env::set_var("OMP_THREAD_LIMIT", "1");
     // Init tesseract
     broadcast(|ctx| {
