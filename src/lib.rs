@@ -4,9 +4,11 @@ mod ocr;
 mod opt;
 mod preprocessor;
 
-pub use crate::ocr::{process as ocr_process, OcrOpt};
-pub use crate::opt::Opt;
-pub use crate::preprocessor::process_images_for_ocr;
+pub use crate::{
+    ocr::{process as ocr_process, OcrOpt},
+    opt::Opt,
+    preprocessor::process_images_for_ocr,
+};
 
 use log::warn;
 use std::{
@@ -14,8 +16,13 @@ use std::{
     io::{self, BufWriter},
     path::PathBuf,
 };
-use subtile::vobsub::VobSubIndexedImage;
-use subtile::{image::dump_images, srt, time::TimeSpan, vobsub, SubtileError};
+use subtile::{
+    image::dump_images,
+    srt,
+    time::TimeSpan,
+    vobsub::{self, VobSubIndexedImage},
+    SubtileError,
+};
 use thiserror::Error;
 
 /// Gather different `Error`s in a dedicated enum.
