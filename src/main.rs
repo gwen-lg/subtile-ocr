@@ -10,6 +10,12 @@ use no_profiling as prof;
 #[cfg(feature = "profile-with-puffin")]
 use puffin_profiling as prof;
 
+use alloc_track::{AllocTrack, BacktraceMode};
+use std::{alloc::System, fs::File, io::Write};
+
+#[global_allocator]
+static GLOBAL_ALLOC: AllocTrack<System> = AllocTrack::new(System, BacktraceMode::Short);
+
 fn main() -> anyhow::Result<()> {
     let profiling_data = prof::init();
 
@@ -29,6 +35,14 @@ fn main() -> anyhow::Result<()> {
 
     profiling::finish_frame!();
     prof::write_perf_file(&profiling_data)?;
+
+    let backtrace_report = alloc_track::backtrace_report(|_, _| true);
+    let mut file = File::create("alloc_backtrace.txt")?;
+    file.write_all(format!("{backtrace_report}").as_bytes())?;
+
+    let tread_report = alloc_track::thread_report();
+    let mut file = File::create("alloc_thread.txt")?;
+    file.write_all(format!("{tread_report}").as_bytes())?;
 
     res
 }
