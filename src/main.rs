@@ -1,6 +1,7 @@
 //! Application to run OCR on a subtitles image format (like `VobSub`)
 
 use anyhow::Context;
+use chrono::Local;
 use clap::Parser;
 use log::LevelFilter;
 use subtile_ocr::{run, Opt};
@@ -10,7 +11,7 @@ use no_profiling as prof;
 #[cfg(feature = "profile-with-puffin")]
 use puffin_profiling as prof;
 
-use alloc_track::{AllocTrack, BacktraceMode};
+use alloc_track::{AllocTrack, BacktraceMetric, BacktraceMode};
 use std::{alloc::System, fs::File, io::Write};
 
 #[global_allocator]
@@ -36,15 +37,40 @@ fn main() -> anyhow::Result<()> {
     profiling::finish_frame!();
     prof::write_perf_file(&profiling_data)?;
 
-    let backtrace_report = alloc_track::backtrace_report(|_, _| true);
-    let mut file = File::create("alloc_backtrace.txt")?;
-    file.write_all(format!("{backtrace_report}").as_bytes())?;
-
-    let tread_report = alloc_track::thread_report();
-    let mut file = File::create("alloc_thread.txt")?;
-    file.write_all(format!("{tread_report}").as_bytes())?;
+    mem_stats_report()?;
 
     res
+}
+
+fn mem_stats_report() -> Result<(), anyhow::Error> {
+    let now = Local::now().format("%Y-%m-%d-%T").to_string();
+    let filename = format!("perf/alloc_backtrace_{now}.txt");
+    let mut file = File::create(filename)?;
+
+    // Summary
+    let backtrace_report = alloc_track::backtrace_report(|_, _| true);
+    let summary =
+        backtrace_report
+            .0
+            .iter()
+            .fold(BacktraceMetric::default(), |val, (_, cur_metric)| {
+                BacktraceMetric {
+                    allocated: val.allocated + cur_metric.allocated,
+                    freed: val.freed + cur_metric.freed,
+                    allocations: val.allocations + cur_metric.allocations,
+                    mode: BacktraceMode::None,
+                }
+            });
+    writeln!(&mut file, "Summary : \n{summary}")?;
+
+    // with Filter and Sort
+    let mut backtrace_report = alloc_track::backtrace_report(|_, metrics| metrics.allocations > 10);
+    backtrace_report.0.sort_unstable_by(|(_, a), (_, b)| {
+        a.allocations.partial_cmp(&b.allocations).unwrap().reverse()
+    });
+    writeln!(&file, "Details : \n{backtrace_report}")?;
+
+    Ok(())
 }
 
 #[cfg(not(feature = "profile-with-puffin"))]
