@@ -19,8 +19,6 @@ env:
 jobs:
   ci_code_checks_and_tests:
     runs-on: ubuntu-22.04
-    env:
-      RUSTFLAGS: "-D warnings"
     strategy:
       fail-fast: false
       matrix:
@@ -51,7 +49,7 @@ jobs:
         id: cargo_clippy
         if: $${{ always() }}
         run: |
-          cargo clippy --profile=test --features ${{ matrix.features }} -- -D warnings
+          cargo clippy --profile=test --features ${{ matrix.features }}
 
       - name: "Cargo test"
         id: cargo_test
@@ -67,6 +65,8 @@ jobs:
 
       - name: "Cargo doc"
         id: cargo_doc
+        env:
+          RUSTDOCFLAGS: "-D warnings"
         if: $${{ always() }}
         run: |
           cargo doc

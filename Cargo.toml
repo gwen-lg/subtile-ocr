@@ -12,6 +12,17 @@ homepage = "https://github.com/gwen-lg/subtile-ocr"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lints.clippy]
+cargo        = { priority = -1, level = "warn" }
+complexity   = { priority = -1, level = "deny" }
+correctness  = { priority = -1, level = "deny" }
+# nursery      = { priority = -1, level = "deny" }
+# pedantic     = { priority = -1, level = "warn" }
+perf         = { priority = -1, level = "deny" }
+# restriction  = { priority = -1, level = "deny" }
+style        = { priority = -1, level = "deny" }
+# suspicious   = { priority = -1, level = "deny" }
+
 [dependencies]
 anyhow = "1.0"
 clap = { version = "4.4", features = ["cargo", "derive"] }
