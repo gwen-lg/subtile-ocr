@@ -126,7 +126,7 @@ fn subtitle_to_images(
 
     let image_regions = scanline_groups_to_image_regions(&scanlines, &scanline_groups);
 
-    let raw_image_width = subtitle.coordinates().width() as u32;
+    let raw_image_width = u32::from(subtitle.coordinates().width());
 
     Some(
         image_regions
@@ -327,7 +327,7 @@ fn scanline_groups_to_image_regions(
 
 /// Convert an sRGB color space channel to linear.
 fn srgb_to_linear(channel: u8) -> f32 {
-    let value = channel as f32 / 255.0;
+    let value = f32::from(channel) / 255.0;
     if value <= 0.04045 {
         value / 12.92
     } else {

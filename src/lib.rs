@@ -3,6 +3,7 @@
 #![deny(unused_imports)]
 #![deny(clippy::bind_instead_of_map)]
 #![deny(clippy::borrowed_box)]
+#![deny(clippy::cast_lossless)]
 #![deny(clippy::clone_on_copy)]
 #![deny(clippy::doc_markdown)]
 #![deny(clippy::extra_unused_lifetimes)]
