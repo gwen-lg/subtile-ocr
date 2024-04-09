@@ -16,17 +16,17 @@ homepage = "https://github.com/gwen-lg/subtile-ocr"
 anyhow = "1.0"
 clap = { version = "4.4", features = ["cargo", "derive"] }
 image = "0.25"
-iter_fixed = "0.3.1"
-leptess = "0.14.0"
+iter_fixed = "0.3"
+leptess = "0.14"
 log = "0.4"
 profiling = "1.0"
 rayon = "1.8"
-scoped-tls-hkt = "0.1.4"
+scoped-tls-hkt = "0.1"
 simple_logger = { version = "4.3", features = ["colors"] }
 subtile = "0.1"
 thiserror = "1.0"
 puffin = { version = "0.19", features =["serialization"], optional = true }
-chrono = { version = "0.4.33", default-features = false, features = ["clock"] }
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
 
 [features]
 default = []
