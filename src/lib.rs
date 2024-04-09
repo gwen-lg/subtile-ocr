@@ -15,6 +15,7 @@
 #![deny(clippy::must_use_candidate)]
 #![deny(clippy::or_fun_call)]
 #![deny(clippy::trivially_copy_pass_by_ref)]
+#![deny(clippy::uninlined_format_args)]
 #![deny(clippy::unreadable_literal)]
 #![deny(clippy::useless_conversion)]
 
@@ -112,7 +113,7 @@ fn dump_image(
     j: usize,
     image: &image::ImageBuffer<image::Luma<u8>, Vec<u8>>,
 ) -> Result<(), Error> {
-    let filename = format!("{:06}-{:02}.png", i, j);
+    let filename = format!("{i:06}-{j:02}.png");
     image
         .save(&filename)
         .map_err(|source| Error::DumpImage { filename, source })
