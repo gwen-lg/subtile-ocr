@@ -1,10 +1,7 @@
 use std::{io::Cursor, str::Utf8Error};
 
 use crate::preprocessor::PreprocessedVobSubtitle;
-use image::{
-    codecs::pnm::{PnmSubtype, SampleEncoding},
-    DynamicImage, GrayImage,
-};
+use image::{DynamicImage, GrayImage};
 use leptess::{
     leptonica::PixError,
     tesseract::{TessInitError, TessSetVariableError},
@@ -142,10 +139,7 @@ impl TesseractWrapper {
     #[profiling::function]
     fn set_image(&mut self, image: GrayImage, dpi: i32) -> Result<()> {
         let mut bytes: Cursor<Vec<u8>> = Cursor::new(Vec::new());
-        DynamicImage::ImageLuma8(image).write_to(
-            &mut bytes,
-            image::ImageOutputFormat::Pnm(PnmSubtype::Graymap(SampleEncoding::Binary)),
-        )?;
+        DynamicImage::ImageLuma8(image).write_to(&mut bytes, image::ImageFormat::Pnm)?;
         self.leptess.set_image_from_mem(bytes.get_ref())?;
         self.leptess.set_source_resolution(dpi);
         Ok(())
