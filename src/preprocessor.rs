@@ -20,6 +20,7 @@ pub struct ImagePreprocessOpt {
 
 impl ImagePreprocessOpt {
     /// Create new `ImagePreprocessOpt`
+    #[must_use]
     pub fn new(threshold: f32, border: u32) -> Self {
         Self { threshold, border }
     }

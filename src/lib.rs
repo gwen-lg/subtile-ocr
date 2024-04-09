@@ -12,6 +12,7 @@
 #![deny(clippy::missing_panics_doc)]
 #![deny(clippy::missing_errors_doc)]
 #![deny(clippy::missing_fields_in_debug)]
+#![deny(clippy::must_use_candidate)]
 #![deny(clippy::or_fun_call)]
 #![deny(clippy::trivially_copy_pass_by_ref)]
 #![deny(clippy::unreadable_literal)]
