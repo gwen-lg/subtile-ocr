@@ -23,6 +23,7 @@ pub struct OcrOpt<'a> {
 }
 
 impl<'a> OcrOpt<'a> {
+    /// Create a new `OcrOpt`
     pub fn new(
         tessdata_dir: &'a Option<String>,
         lang: &'a str,
@@ -61,6 +62,7 @@ pub enum Error {
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
+/// Process OCR for subtitle images.
 #[profiling::function]
 pub fn process(
     vobsubs: Vec<PreprocessedVobSubtitle>,

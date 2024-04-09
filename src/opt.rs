@@ -13,6 +13,7 @@ enum Error {
     TesseractVariableName { value: String },
 }
 
+/// Handle application parameter from cli with Clap.
 #[derive(Parser, Debug)]
 #[clap(name = crate_name!(), about = crate_description!(), version = crate_version!())]
 pub struct Opt {
@@ -57,6 +58,7 @@ pub struct Opt {
     #[clap(short = 'c', long, value_parser = parse_key_val, number_of_values = 1)]
     pub config: Vec<(Variable, String)>,
 
+    /// Set the path of the file to process.
     #[clap(name = "FILE", value_parser, value_hint = ValueHint::FilePath)]
     pub input: PathBuf,
 

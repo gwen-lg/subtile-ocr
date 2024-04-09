@@ -12,12 +12,14 @@ use subtile::{
     vobsub, SubError,
 };
 
+/// Option for Image preprocessing.
 pub struct ImagePreprocessOpt {
     threshold: f32,
     border: u32,
 }
 
 impl ImagePreprocessOpt {
+    /// Create new `ImagePreprocessOpt`
     pub fn new(threshold: f32, border: u32) -> Self {
         Self { threshold, border }
     }

@@ -1,4 +1,5 @@
 #![doc = include_str!("../README.md")]
+#![deny(missing_docs)]
 
 mod ocr;
 mod opt;
@@ -17,6 +18,8 @@ use std::{
 use subtile::{srt, time::TimeSpan, vobsub, SubError};
 use thiserror::Error;
 
+/// Gather different `Error`s in a dedicated enum.
+#[allow(missing_docs)]
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("Could not parse VOB subtitles.")]
@@ -44,6 +47,7 @@ pub enum Error {
     },
 }
 
+/// Run OCR for `opt`.
 #[profiling::function]
 pub fn run(opt: &Opt) -> anyhow::Result<()> {
     rayon::ThreadPoolBuilder::new()
