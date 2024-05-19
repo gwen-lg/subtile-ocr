@@ -33,7 +33,7 @@ use std::{
     io::{self, BufWriter},
     path::PathBuf,
 };
-use subtile::{srt, time::TimeSpan, vobsub, SubError};
+use subtile::{image::dump_images, srt, time::TimeSpan, vobsub, SubError};
 use thiserror::Error;
 
 /// Gather different `Error`s in a dedicated enum.
@@ -82,7 +82,8 @@ pub fn run(opt: &Opt) -> anyhow::Result<()> {
 
     // Dump images if requested.
     if opt.dump {
-        dump_images(&vobsubs)?;
+        let images = vobsubs.iter().map(|sub| &sub.image);
+        dump_images("dumps", images)?;
     }
 
     let ocr_opt = OcrOpt::new(&opt.tessdata_dir, opt.lang.as_str(), &opt.config, opt.dpi);
@@ -93,28 +94,6 @@ pub fn run(opt: &Opt) -> anyhow::Result<()> {
     write_srt(&opt.output, &subtitles)?;
 
     Ok(())
-}
-
-/// dump all images
-#[profiling::function]
-fn dump_images(vobsubs: &[preprocessor::PreprocessedVobSubtitle]) -> Result<(), Error> {
-    vobsubs
-        .iter()
-        .enumerate()
-        .try_for_each(|(i, sub)| dump_image(i, 0, &sub.image))
-}
-
-/// dump one image
-#[profiling::function]
-fn dump_image(
-    i: usize,
-    j: usize,
-    image: &image::ImageBuffer<image::Luma<u8>, Vec<u8>>,
-) -> Result<(), Error> {
-    let filename = format!("{i:06}-{j:02}.png");
-    image
-        .save(&filename)
-        .map_err(|source| Error::DumpImage { filename, source })
 }
 
 /// Log errors and remove bad results.
