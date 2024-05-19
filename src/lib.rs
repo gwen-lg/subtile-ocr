@@ -157,12 +157,12 @@ fn write_srt(path: &Option<PathBuf>, subtitles: &[(TimeSpan, String)]) -> Result
             // Write to file.
             let subtitle_file = File::create(path).map_err(mkerr)?;
             let mut stream = BufWriter::new(subtitle_file);
-            srt::write_srt(subtitles, &mut stream).map_err(mkerr)?;
+            srt::write_srt(&mut stream, subtitles).map_err(mkerr)?;
         }
         None => {
             // Write to stdout.
             let mut stdout = io::stdout();
-            srt::write_srt(subtitles, &mut stdout)
+            srt::write_srt(&mut stdout, subtitles)
                 .map_err(|source| Error::WriteSrtStdout { source })?;
         }
     }

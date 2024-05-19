@@ -127,7 +127,7 @@ fn subtitle_to_images(
 
     let image_regions = scanline_groups_to_image_regions(&scanlines, &scanline_groups);
 
-    let raw_image_width = u32::from(subtitle.coordinates().width());
+    let raw_image_width = u32::from(subtitle.area().width());
 
     Some(
         image_regions
@@ -226,8 +226,8 @@ fn inventory_scanlines(
     subtitle: &vobsub::Subtitle,
     palette: &[bool; 4],
 ) -> Vec<Option<ScanlineExtent>> {
-    let width = subtitle.coordinates().width() as usize;
-    let height = subtitle.coordinates().height() as usize;
+    let width = subtitle.area().width() as usize;
+    let height = subtitle.area().height() as usize;
     (0..height)
         .into_par_iter()
         .map(|y| {
