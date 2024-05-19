@@ -13,15 +13,15 @@ homepage = "https://github.com/gwen-lg/subtile-ocr"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lints.clippy]
-cargo        = { priority = -1, level = "warn" }
-complexity   = { priority = -1, level = "deny" }
-correctness  = { priority = -1, level = "deny" }
-# nursery      = { priority = -1, level = "deny" }
-# pedantic     = { priority = -1, level = "warn" }
-perf         = { priority = -1, level = "deny" }
-# restriction  = { priority = -1, level = "deny" }
-style        = { priority = -1, level = "deny" }
-# suspicious   = { priority = -1, level = "deny" }
+cargo = { priority = -1, level = "warn" }
+complexity = { priority = -1, level = "deny" }
+correctness = { priority = -1, level = "deny" }
+# nursery = { priority = -1, level = "deny" }
+# pedantic = { priority = -1, level = "warn" }
+perf = { priority = -1, level = "deny" }
+# restriction = { priority = -1, level = "deny" }
+style = { priority = -1, level = "deny" }
+# suspicious = { priority = -1, level = "deny" }
 
 [dependencies]
 anyhow = "1.0"
@@ -36,7 +36,7 @@ scoped-tls-hkt = "0.1"
 simple_logger = { version = "4.3", features = ["colors"] }
 subtile = "0.1"
 thiserror = "1.0"
-puffin = { version = "0.19", features =["serialization"], optional = true }
+puffin = { version = "0.19", features = ["serialization"], optional = true }
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 
 [features]
