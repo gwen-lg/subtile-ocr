@@ -120,7 +120,6 @@ fn dump_image(
 }
 
 /// Log errors and remove bad results.
-
 #[profiling::function]
 pub fn check_subtitles(
     subtitles: Vec<Result<(TimeSpan, String), ocr::Error>>,
