@@ -26,7 +26,10 @@ style = { priority = -1, level = "deny" }
 [dependencies]
 anyhow = "1.0"
 clap = { version = "4.4", features = ["cargo", "derive"] }
-image = "0.25"
+image = { version = "0.25", default-features = false, features = [
+    "png",
+    "pnm",
+] }
 iter_fixed = "0.3"
 leptess = "0.14"
 log = "0.4"
