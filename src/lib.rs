@@ -57,12 +57,6 @@ pub enum Error {
 
     #[error("Could not write SRT on stdout.")]
     WriteSrtStdout { source: io::Error },
-
-    #[error("Could not write image dump file '{filename}'")]
-    DumpImage {
-        filename: String,
-        source: image::ImageError,
-    },
 }
 
 /// Run OCR for `opt`.
