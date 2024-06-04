@@ -838,9 +838,9 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "subtile"
-version = "0.1.7"
+version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "891435af6a2356ef9e05209bfdab9b55ac7c4ba8f66b46e37f2d763ebf4166a6"
+checksum = "4257d676203d7901c2e2ac2712b00400c23ee13d131657cbc4e620560cfcc286"
 dependencies = [
  "cast",
  "image",
