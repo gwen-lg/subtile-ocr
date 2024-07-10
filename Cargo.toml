@@ -30,7 +30,7 @@ image = { version = "0.25", default-features = false, features = [
     "png",
     "pnm",
 ] }
-iter_fixed = "0.3"
+iter_fixed = "0.4"
 leptess = "0.14"
 log = "0.4"
 profiling = "1.0"
