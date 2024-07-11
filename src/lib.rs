@@ -14,6 +14,7 @@ use std::{
     io::{self, BufWriter},
     path::PathBuf,
 };
+use subtile::vobsub::VobSubIndexedImage;
 use subtile::{image::dump_images, srt, time::TimeSpan, vobsub, SubtileError};
 use thiserror::Error;
 
@@ -52,18 +53,33 @@ pub fn run(opt: &Opt) -> anyhow::Result<()> {
         profiling::scope!("Open idx");
         vobsub::Index::open(&opt.input)?
     };
+    let (times, images): (Vec<_>, Vec<_>) = {
+        profiling::scope!("Parse subtitles");
+        idx.subtitles::<(TimeSpan, VobSubIndexedImage)>()
+            .filter_map(|sub| match sub {
+                Ok(sub) => Some(sub),
+                Err(e) => {
+                    warn!(
+                    "warning: unable to read subtitle: {}. (This can usually be safely ignored.)",
+                    e
+                );
+                    None
+                }
+            })
+            .unzip()
+    };
+
     let image_opt = ImagePreprocessOpt::new(opt.threshold, opt.border);
-    let vobsubs = preprocessor::preprocess_subtitles(idx, image_opt)?;
+    let images_for_ocr = preprocessor::preprocess_subtitles(idx, images, image_opt)?;
 
     // Dump images if requested.
     if opt.dump {
-        let images = vobsubs.iter().map(|sub| &sub.image);
-        dump_images("dumps", images)?;
+        dump_images("dumps", &images_for_ocr)?;
     }
 
     let ocr_opt = OcrOpt::new(&opt.tessdata_dir, opt.lang.as_str(), &opt.config, opt.dpi);
-    let subtitles = ocr::process(vobsubs, &ocr_opt)?;
-    let subtitles = check_subtitles(subtitles)?;
+    let texts = ocr::process(images_for_ocr, &ocr_opt)?;
+    let subtitles = check_subtitles(times.into_iter().zip(texts))?;
 
     // Create subtitle file.
     write_srt(&opt.output, &subtitles)?;
@@ -75,26 +91,27 @@ pub fn run(opt: &Opt) -> anyhow::Result<()> {
 #[profiling::function]
 pub fn check_subtitles<In>(subtitles: In) -> Result<Vec<(TimeSpan, String)>, Error>
 where
-    In: IntoIterator<Item = Result<(TimeSpan, String), ocr::Error>>,
+    In: IntoIterator<Item = (TimeSpan, Result<String, ocr::Error>)>,
 {
     let mut ocr_error_count = 0;
-    let subtitles: Vec<(TimeSpan, String)> = subtitles
+    let subtitles = subtitles
         .into_iter()
         .enumerate()
-        .filter_map(|(idx, maybe_subtitle)| match maybe_subtitle {
-            Ok(subtitle) => Some(subtitle),
+        .filter_map(|(idx, (time, maybe_text))| match maybe_text {
+            Ok(text) => Some((time, text)),
             Err(e) => {
                 let err = anyhow::Error::new(e); // warp in anyhow::Error to display the error stack with :#
                 warn!(
-                    "Error while running OCR on subtitle image ({}):\n\t {:#}",
+                    "Error while running OCR on subtitle image ({} - {:?}):\n\t {:#}",
                     idx + 1,
+                    time,
                     err
                 );
                 ocr_error_count += 1;
                 None
             }
         })
-        .collect();
+        .collect::<Vec<_>>();
 
     if ocr_error_count > 0 {
         Err(Error::OcrFails(ocr_error_count))

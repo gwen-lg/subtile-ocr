@@ -1,6 +1,5 @@
 use std::{io::Cursor, str::Utf8Error};
 
-use crate::preprocessor::PreprocessedVobSubtitle;
 use image::{DynamicImage, GrayImage};
 use leptess::{
     leptonica::PixError,
@@ -9,7 +8,6 @@ use leptess::{
 };
 use rayon::prelude::*;
 use scoped_tls_hkt::scoped_thread_local;
-use subtile::time::TimeSpan;
 use thiserror::Error;
 
 scoped_thread_local!(static mut TESSERACT: Option<TesseractWrapper>);
@@ -65,10 +63,7 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 /// Process OCR for subtitle images.
 #[profiling::function]
-pub fn process(
-    vobsubs: Vec<PreprocessedVobSubtitle>,
-    opt: &OcrOpt,
-) -> Result<Vec<Result<(TimeSpan, String)>>> {
+pub fn process(images: Vec<GrayImage>, opt: &OcrOpt) -> Result<Vec<Result<String>>> {
     std::env::set_var("OMP_THREAD_LIMIT", "1");
     let subs = rayon::ThreadPoolBuilder::new().build_scoped(
         |thread| {
@@ -77,9 +72,9 @@ pub fn process(
         },
         |pool| {
             pool.install(|| {
-                vobsubs
+                images
                     .into_par_iter()
-                    .map(|vobsub| {
+                    .map(|image| {
                         let text = TESSERACT.with(|maybe_tesseract| {
                             profiling::scope!("tesseract_ocr");
                             let tesseract = match maybe_tesseract {
@@ -93,12 +88,12 @@ pub fn process(
                                     maybe_tesseract.insert(tesseract)
                                 }
                             };
-                            tesseract.set_image(vobsub.image, opt.dpi)?;
+                            tesseract.set_image(image, opt.dpi)?;
                             tesseract.get_text()
                         })?;
-                        Ok((vobsub.time_span, text))
+                        Ok(text)
                     })
-                    .collect::<Vec<Result<(TimeSpan, String)>>>()
+                    .collect::<Vec<Result<String>>>()
             })
         },
     )?;
