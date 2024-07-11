@@ -139,8 +139,12 @@ impl TesseractWrapper {
     /// Set the tesseract image to the given image's contents.
     #[profiling::function]
     fn set_image(&mut self, image: GrayImage, dpi: i32) -> Result<()> {
-        let mut bytes: Cursor<Vec<u8>> = Cursor::new(Vec::new());
-        DynamicImage::ImageLuma8(image).write_to(&mut bytes, image::ImageFormat::Pnm)?;
+        let bytes = {
+            profiling::scope!("TesseractWrapper Pnm create");
+            let mut bytes: Cursor<Vec<u8>> = Cursor::new(Vec::new());
+            DynamicImage::ImageLuma8(image).write_to(&mut bytes, image::ImageFormat::Pnm)?;
+            bytes
+        };
         self.leptess.set_image_from_mem(bytes.get_ref())?;
         self.leptess.set_source_resolution(dpi);
         Ok(())
