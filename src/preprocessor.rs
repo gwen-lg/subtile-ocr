@@ -6,9 +6,9 @@ use subtile::{
     SubtileError,
 };
 
-/// Return a vector of binarized subtitles.
+/// Return a vector of processed images for OCR.
 #[profiling::function]
-pub fn preprocess_subtitles(
+pub fn process_images_for_ocr(
     idx: vobsub::Index,
     images: Vec<VobSubIndexedImage>,
     border: u32,
