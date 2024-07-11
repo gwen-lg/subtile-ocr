@@ -6,7 +6,7 @@ mod preprocessor;
 
 pub use crate::ocr::{process as ocr_process, OcrOpt};
 pub use crate::opt::Opt;
-pub use crate::preprocessor::{preprocess_subtitles, ImagePreprocessOpt};
+pub use crate::preprocessor::preprocess_subtitles;
 
 use log::warn;
 use std::{
@@ -69,8 +69,7 @@ pub fn run(opt: &Opt) -> anyhow::Result<()> {
             .unzip()
     };
 
-    let image_opt = ImagePreprocessOpt::new(opt.threshold, opt.border);
-    let images_for_ocr = preprocessor::preprocess_subtitles(idx, images, image_opt)?;
+    let images_for_ocr = preprocessor::preprocess_subtitles(idx, images, opt.border)?;
 
     // Dump images if requested.
     if opt.dump {
