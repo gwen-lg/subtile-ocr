@@ -6,29 +6,15 @@ use subtile::{
     SubtileError,
 };
 
-/// Option for Image preprocessing.
-pub struct ImagePreprocessOpt {
-    threshold: f32,
-    border: u32,
-}
-
-impl ImagePreprocessOpt {
-    /// Create new `ImagePreprocessOpt`
-    #[must_use]
-    pub fn new(threshold: f32, border: u32) -> Self {
-        Self { threshold, border }
-    }
-}
-
 /// Return a vector of binarized subtitles.
 #[profiling::function]
 pub fn preprocess_subtitles(
     idx: vobsub::Index,
     images: Vec<VobSubIndexedImage>,
-    opt: ImagePreprocessOpt,
+    border: u32,
 ) -> Result<Vec<GrayImage>, SubtileError> {
     let opt = ToOcrImageOpt {
-        border: opt.border,
+        border,
         ..Default::default()
     };
     let palette = rgb_palette_to_luminance(idx.palette());
