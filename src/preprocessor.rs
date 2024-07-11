@@ -8,20 +8,23 @@ use subtile::{
 
 /// Return a vector of processed images for OCR.
 #[profiling::function]
-pub fn process_images_for_ocr(
+pub fn process_images_for_ocr<I>(
     idx: vobsub::Index,
-    images: Vec<VobSubIndexedImage>,
+    images: I,
     border: u32,
-) -> Result<Vec<GrayImage>, SubtileError> {
+) -> Result<Vec<GrayImage>, SubtileError>
+where
+    I: IntoParallelIterator<Item = VobSubIndexedImage>,
+{
     let opt = ToOcrImageOpt {
         border,
         ..Default::default()
     };
     let palette = rgb_palette_to_luminance(idx.palette());
     let result = images
-        .par_iter()
-        .map(|vobimg| {
-            let converter = VobSubOcrImage::new(vobimg, &palette);
+        .into_par_iter()
+        .map(|vobsub_img| {
+            let converter = VobSubOcrImage::new(&vobsub_img, &palette);
             converter.image(&opt)
         })
         .collect();
