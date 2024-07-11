@@ -69,7 +69,7 @@ pub fn run(opt: &Opt) -> anyhow::Result<()> {
             .unzip()
     };
 
-    let images_for_ocr = preprocessor::process_images_for_ocr(idx, images, opt.border)?;
+    let images_for_ocr = preprocessor::process_images_for_ocr(idx, images, opt.border);
 
     // Dump images if requested.
     if opt.dump {
