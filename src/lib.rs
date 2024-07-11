@@ -73,9 +73,10 @@ pub fn run(opt: &Opt) -> anyhow::Result<()> {
 
 /// Log errors and remove bad results.
 #[profiling::function]
-pub fn check_subtitles(
-    subtitles: Vec<Result<(TimeSpan, String), ocr::Error>>,
-) -> Result<Vec<(TimeSpan, String)>, Error> {
+pub fn check_subtitles<In>(subtitles: In) -> Result<Vec<(TimeSpan, String)>, Error>
+where
+    In: IntoIterator<Item = Result<(TimeSpan, String), ocr::Error>>,
+{
     let mut ocr_error_count = 0;
     let subtitles: Vec<(TimeSpan, String)> = subtitles
         .into_iter()
