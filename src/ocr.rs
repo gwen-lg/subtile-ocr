@@ -127,6 +127,8 @@ impl TesseractWrapper {
         leptess.set_variable(leptess::Variable::TesseditPagesegMode, "6")?;
         // Avoid interpreting the characters I, l as |
         leptess.set_variable(leptess::Variable::TesseditCharBlacklist, "|")?;
+        // Avoid than tesseract tried to invert the image
+        leptess.set_variable(leptess::Variable::TesseditDoInvert, "0")?;
         // Add user options.
         for (key, value) in config {
             leptess.set_variable(*key, value)?;
