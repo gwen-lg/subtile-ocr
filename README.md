@@ -1,6 +1,6 @@
 # subtile-ocr
 
-`subtile-ocr` is a blazingly fast and accurate DVD VobSub to SRT subtitle conversion tool.
+`subtile-ocr` is a blazingly fast and accurate DVD `VobSub` to SRT subtitle conversion tool.
 It's started as a fork of [vobsubocr](https://github.com/elizagamedev/vobsubocr).
 
 ## Background
@@ -8,7 +8,7 @@ It's started as a fork of [vobsubocr](https://github.com/elizagamedev/vobsubocr)
 DVD subtitles are unfortunately encoded essentially as a series of images. This
 presents problems when needing a text representation of the subtitle, e.g. for
 language learning. `subtile-ocr` can alleviate this problem by generating SRT
-subtitles from an input VobSub file, leveraging the power of
+subtitles from an input `VobSub` file, leveraging the power of
 [Tesseract](https://github.com/tesseract-ocr/tesseract).
 
 ## Installation
