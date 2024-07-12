@@ -18,7 +18,7 @@ env:
 
 jobs:
   ci_code_checks_and_tests:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-stable
     strategy:
       fail-fast: false
       matrix:
@@ -43,7 +43,7 @@ jobs:
           cargo -vV
 
       - name: "Checkout"
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
+        uses: actions/checkout@v4
 
       - name: "Cargo clippy"
         id: cargo_clippy
