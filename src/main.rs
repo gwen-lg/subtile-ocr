@@ -58,7 +58,7 @@ mod puffin_profiling {
 
     pub fn write_perf_file(global_frame_view: GlobalFrameView) -> anyhow::Result<()> {
         let now = Local::now().format("%Y-%m-%d-%T").to_string();
-        let filename = format!("perf/capture_{}.puffin", now);
+        let filename = format!("perf/capture_{now}.puffin");
 
         fs::create_dir_all("perf")?;
         let mut file = File::create(filename)?;
