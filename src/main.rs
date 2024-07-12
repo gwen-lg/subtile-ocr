@@ -1,3 +1,5 @@
+//! Application to run OCR on a subtitles image format (like `VobSub`)
+
 use anyhow::Context;
 use clap::Parser;
 use log::LevelFilter;
