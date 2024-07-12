@@ -66,6 +66,10 @@ pub struct Opt {
     /// Dump processed subtitle images into the working directory as PNG files.
     #[clap(long)]
     pub dump: bool,
+
+    /// Dump raw subtitle images into the working directory as PNG files.
+    #[clap(long)]
+    pub dump_raw: bool,
 }
 
 // https://github.com/clap-rs/clap_derive/blob/master/examples/keyvalue.rs

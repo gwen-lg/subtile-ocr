@@ -6,7 +6,7 @@ mod preprocessor;
 
 pub use crate::{ocr::OcrOpt, opt::Opt};
 
-use image::GrayImage;
+use image::{GrayImage, LumaA};
 use log::warn;
 use preprocessor::rgb_palette_to_luminance;
 use rayon::{
@@ -20,11 +20,11 @@ use std::{
     path::PathBuf,
 };
 use subtile::{
-    image::{dump_images, luma_a_to_luma, ToOcrImage, ToOcrImageOpt},
+    image::{dump_images, luma_a_to_luma, ToImage, ToOcrImage, ToOcrImageOpt},
     pgs::{self, DecodeTimeImage, RleToImage},
     srt,
     time::TimeSpan,
-    vobsub::{self, VobSubError, VobSubIndexedImage, VobSubOcrImage},
+    vobsub::{self, conv_to_rgba, VobSubError, VobSubIndexedImage, VobSubOcrImage, VobSubToImage},
     SubtileError,
 };
 use thiserror::Error;
@@ -134,6 +134,13 @@ pub fn process_pgs(opt: &Opt) -> Result<(Vec<TimeSpan>, Vec<GrayImage>), Error> 
             .map_err(Error::PgsParsing)?
     };
 
+    if opt.dump_raw {
+        let images = rle_images
+            .iter()
+            .map(|rle_img| RleToImage::new(rle_img, |pix: LumaA<u8>| pix).to_image());
+        dump_images("dumps_raw", images).map_err(Error::DumpImage)?;
+    }
+
     let conv_fn = luma_a_to_luma::<_, _, 100, 100>; // Hardcoded value for alpha and luma threshold than work not bad.
 
     let images = {
@@ -174,6 +181,15 @@ pub fn process_vobsub(opt: &Opt) -> Result<(Vec<TimeSpan>, Vec<GrayImage>), Erro
             })
             .unzip()
     };
+
+    if opt.dump_raw {
+        let images = images.iter().map(|rle_img| {
+            let image: image::RgbaImage =
+                VobSubToImage::new(rle_img, idx.palette(), conv_to_rgba).to_image();
+            image
+        });
+        dump_images("dumps_raw", images).map_err(Error::DumpImage)?;
+    }
 
     let images_for_ocr = {
         profiling::scope!("Convert images for OCR");
