@@ -79,10 +79,16 @@ pub fn check_subtitles(
     let mut ocr_error_count = 0;
     let subtitles: Vec<(TimeSpan, String)> = subtitles
         .into_iter()
-        .filter_map(|maybe_subtitle| match maybe_subtitle {
+        .enumerate()
+        .filter_map(|(idx, maybe_subtitle)| match maybe_subtitle {
             Ok(subtitle) => Some(subtitle),
             Err(e) => {
-                warn!("Error while running OCR on subtitle image: {}", e);
+                let err = anyhow::Error::new(e); // warp in anyhow::Error to display the error stack with :#
+                warn!(
+                    "Error while running OCR on subtitle image ({}):\n\t {:#}",
+                    idx + 1,
+                    err
+                );
                 ocr_error_count += 1;
                 None
             }
