@@ -4,7 +4,7 @@ use log::warn;
 use rayon::prelude::*;
 use subtile::{
     time::{TimePoint, TimeSpan},
-    vobsub, SubError,
+    vobsub, SubtileError,
 };
 
 /// Option for Image preprocessing.
@@ -32,7 +32,7 @@ pub struct PreprocessedVobSubtitle {
 pub fn preprocess_subtitles(
     idx: vobsub::Index,
     opt: ImagePreprocessOpt,
-) -> Result<Vec<PreprocessedVobSubtitle>, SubError> {
+) -> Result<Vec<PreprocessedVobSubtitle>, SubtileError> {
     let subtitles: Vec<vobsub::Subtitle> = {
         profiling::scope!("Parse subtitles");
         idx.subtitles()

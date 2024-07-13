@@ -14,7 +14,7 @@ use std::{
     io::{self, BufWriter},
     path::PathBuf,
 };
-use subtile::{image::dump_images, srt, time::TimeSpan, vobsub, SubError};
+use subtile::{image::dump_images, srt, time::TimeSpan, vobsub, SubtileError};
 use thiserror::Error;
 
 /// Gather different `Error`s in a dedicated enum.
@@ -22,7 +22,7 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("Could not parse VOB subtitles.")]
-    ReadSubtitles(#[from] SubError),
+    ReadSubtitles(#[from] SubtileError),
 
     #[error("Could not perform OCR on subtitles.")]
     Ocr(#[from] ocr::Error),
