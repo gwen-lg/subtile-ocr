@@ -18,7 +18,7 @@ env:
 
 jobs:
   ci_code_checks_and_tests:
-    runs-on: ubuntu-stable
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
