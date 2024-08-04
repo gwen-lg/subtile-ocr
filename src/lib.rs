@@ -16,7 +16,7 @@ use subtile::{
     image::dump_images,
     srt,
     time::TimeSpan,
-    vobsub::{self, VobSubIndexedImage},
+    vobsub::{self, VobSubError, VobSubIndexedImage},
     SubtileError,
 };
 use thiserror::Error;
@@ -27,6 +27,9 @@ use thiserror::Error;
 pub enum Error {
     #[error("Could not parse VOB subtitles.")]
     ReadSubtitles(#[from] SubtileError),
+
+    #[error("Failed to open Index file.")]
+    IndexOpen(#[source] VobSubError),
 
     #[error("Failed to dump subtitles images")]
     DumpImage(#[source] SubtileError),
@@ -57,7 +60,7 @@ pub fn run(opt: &Opt) -> anyhow::Result<()> {
 
     let idx = {
         profiling::scope!("Open idx");
-        vobsub::Index::open(&opt.input)?
+        vobsub::Index::open(&opt.input).map_err(Error::IndexOpen)?
     };
     let (times, images): (Vec<_>, Vec<_>) = {
         profiling::scope!("Parse subtitles");
