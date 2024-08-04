@@ -4,20 +4,24 @@ mod ocr;
 mod opt;
 mod preprocessor;
 
-pub use crate::{ocr::OcrOpt, opt::Opt, preprocessor::process_images_for_ocr};
+pub use crate::{ocr::OcrOpt, opt::Opt};
 
 use log::warn;
-use rayon::ThreadPoolBuildError;
+use preprocessor::rgb_palette_to_luminance;
+use rayon::{
+    iter::{IntoParallelRefIterator, ParallelIterator},
+    ThreadPoolBuildError,
+};
 use std::{
     fs::File,
     io::{self, BufWriter},
     path::PathBuf,
 };
 use subtile::{
-    image::dump_images,
+    image::{dump_images, ToOcrImage, ToOcrImageOpt},
     srt,
     time::TimeSpan,
-    vobsub::{self, VobSubError, VobSubIndexedImage},
+    vobsub::{self, VobSubError, VobSubIndexedImage, VobSubOcrImage},
     SubtileError,
 };
 use thiserror::Error;
@@ -87,7 +91,19 @@ pub fn run(opt: &Opt) -> Result<(), Error> {
             .unzip()
     };
 
-    let images_for_ocr = preprocessor::process_images_for_ocr(idx, images, opt.border);
+    let images_for_ocr = {
+        profiling::scope!("Convert images for OCR");
+
+        let ocr_opt = ocr_opt(opt);
+        let palette = rgb_palette_to_luminance(idx.palette());
+        images
+            .par_iter()
+            .map(|vobsub_img| {
+                let converter = VobSubOcrImage::new(vobsub_img, &palette);
+                converter.image(&ocr_opt)
+            })
+            .collect::<Vec<_>>()
+    };
 
     // Dump images if requested.
     if opt.dump {
@@ -102,6 +118,14 @@ pub fn run(opt: &Opt) -> Result<(), Error> {
     write_srt(&opt.output, &subtitles)?;
 
     Ok(())
+}
+
+/// Create [`ToOcrImageOpt`] from [`Opt`]
+fn ocr_opt(opt: &Opt) -> ToOcrImageOpt {
+    ToOcrImageOpt {
+        border: opt.border,
+        ..Default::default()
+    }
 }
 
 /// Log errors and remove bad results.
