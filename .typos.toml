@@ -1,0 +1,7 @@
+[default.extend-words]
+# Don't correct the crates name
+subtile = "subtile"
+subtile_ocr = "subtile_ocr"
+
+[files]
+extend-exclude = ["CHANGELOG.md"]
