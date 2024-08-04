@@ -1,32 +1,8 @@
-use image::GrayImage;
-use rayon::prelude::*;
-use subtile::{
-    image::{ToOcrImage, ToOcrImageOpt},
-    vobsub::{self, VobSubIndexedImage, VobSubOcrImage},
-};
-
-/// Return a vector of processed images for OCR.
-#[profiling::function]
-pub fn process_images_for_ocr<I>(idx: vobsub::Index, images: I, border: u32) -> Vec<GrayImage>
-where
-    I: IntoParallelIterator<Item = VobSubIndexedImage>,
-{
-    let opt = ToOcrImageOpt {
-        border,
-        ..Default::default()
-    };
-    let palette = rgb_palette_to_luminance(idx.palette());
-    images
-        .into_par_iter()
-        .map(|vobsub_img| {
-            let converter = VobSubOcrImage::new(&vobsub_img, &palette);
-            converter.image(&opt)
-        })
-        .collect()
-}
+use subtile::vobsub;
 
 /// Convert an sRGB palette to a luminance palette.
-fn rgb_palette_to_luminance(palette: &vobsub::Palette) -> [f32; 16] {
+#[must_use]
+pub fn rgb_palette_to_luminance(palette: &vobsub::Palette) -> [f32; 16] {
     palette.map(|x| {
         let r = srgb_to_linear(x[0]);
         let g = srgb_to_linear(x[1]);
