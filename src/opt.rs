@@ -63,7 +63,7 @@ pub struct Opt {
     #[clap(name = "FILE", value_parser, value_hint = ValueHint::FilePath)]
     pub input: PathBuf,
 
-    /// Dump processed subtitle images into the working directory as PNGs.
+    /// Dump processed subtitle images into the working directory as PNG files.
     #[clap(long)]
     pub dump: bool,
 }
