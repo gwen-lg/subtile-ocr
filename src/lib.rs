@@ -105,6 +105,9 @@ pub fn run(opt: &Opt) -> Result<(), Error> {
 }
 
 /// Log errors and remove bad results.
+///
+/// # Errors
+///  Will return [`Error::OcrFails`] if the ocr return an error for at least one image.
 #[profiling::function]
 pub fn check_subtitles<In>(subtitles: In) -> Result<Vec<(TimeSpan, String)>, Error>
 where
