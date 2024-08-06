@@ -55,8 +55,14 @@ pub enum Error {
 }
 
 /// Run OCR for `opt`.
+///
+/// # Errors
+///
+/// Will return `Error::RayonThreadPool` if `build_global` of the `ThreadPool` rayon failed.
+/// Will return `Error::IndexOpen` if the subtitle files can't be opened.
+/// Will return `Error::DumpImage` if an error occurred during dump.
 #[profiling::function]
-pub fn run(opt: &Opt) -> anyhow::Result<()> {
+pub fn run(opt: &Opt) -> Result<(), Error> {
     rayon::ThreadPoolBuilder::new()
         .thread_name(|idx| format!("Rayon_{idx}"))
         .build_global()
