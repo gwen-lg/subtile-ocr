@@ -79,8 +79,7 @@ pub fn run(opt: &Opt) -> Result<(), Error> {
                 Ok(sub) => Some(sub),
                 Err(e) => {
                     warn!(
-                    "warning: unable to read subtitle: {}. (This can usually be safely ignored.)",
-                    e
+                    "warning: unable to read subtitle: {e}. (This can usually be safely ignored.)"
                 );
                     None
                 }
@@ -120,10 +119,8 @@ where
             Err(e) => {
                 let err = anyhow::Error::new(e); // warp in anyhow::Error to display the error stack with :#
                 warn!(
-                    "Error while running OCR on subtitle image ({} - {:?}):\n\t {:#}",
+                    "Error while running OCR on subtitle image ({} - {time:?}):\n\t {err:#}",
                     idx + 1,
-                    time,
-                    err
                 );
                 ocr_error_count += 1;
                 None
