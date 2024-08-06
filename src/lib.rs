@@ -7,6 +7,7 @@ mod preprocessor;
 pub use crate::{ocr::OcrOpt, opt::Opt, preprocessor::process_images_for_ocr};
 
 use log::warn;
+use rayon::ThreadPoolBuildError;
 use std::{
     fs::File,
     io::{self, BufWriter},
@@ -25,6 +26,9 @@ use thiserror::Error;
 #[allow(missing_docs)]
 #[derive(Error, Debug)]
 pub enum Error {
+    #[error("Failed to create a rayon ThreadPool.")]
+    RayonThreadPool(#[from] ThreadPoolBuildError),
+
     #[error("Could not parse VOB subtitles.")]
     ReadSubtitles(#[from] SubtileError),
 
@@ -55,8 +59,8 @@ pub enum Error {
 pub fn run(opt: &Opt) -> anyhow::Result<()> {
     rayon::ThreadPoolBuilder::new()
         .thread_name(|idx| format!("Rayon_{idx}"))
-        .build_global() // _global
-        .unwrap();
+        .build_global()
+        .map_err(Error::RayonThreadPool)?;
 
     let idx = {
         profiling::scope!("Open idx");
