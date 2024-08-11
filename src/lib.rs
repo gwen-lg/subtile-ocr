@@ -45,7 +45,6 @@ pub enum Error {
     #[error("Failed to open Index file.")]
     IndexOpen(#[source] VobSubError),
 
-    //TODO: indicate the file
     #[error("Failed to create PgsParser from file")]
     PgsParserFromFile(#[source] pgs::PgsError),
 
