@@ -26,7 +26,7 @@ profiling = "1.0"
 rayon = "1.8"
 scoped-tls-hkt = "0.1"
 simple_logger = { version = "5.0", features = ["colors"] }
-subtile = "0.2"
+subtile = "0.3"
 thiserror = "1.0"
 puffin = { version = "0.19", features = ["serialization"], optional = true }
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
