@@ -6,6 +6,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1](https://github.com/gwen-lg/subtile-ocr/compare/v0.2.0...v0.2.1) - 2024-08-11
+
+### 🚀 Features
+
+- *(typos)* Add .typos.toml conf
+- *(dump)* Add DumpImage error and map to call to dump_images
+- *(error)* Create a dedicated error for Index file opening
+- *(error)* Create an error for RayonThreaPool creation
+- Run cargo update
+- *(subtile)* Update subtile dependency to v0.3"
+- *(pgs)* Add pgs (*.sup files) management
+- Add dump-raw option
+
+### 🚜 Refactor
+
+- Rework ocr thread management
+- `run` fn return a simple Result
+- Convert ocr process to use IntoParrallelTterator
+- Inline code of process_image_for_ocr
+
+### 📚 Documentation
+
+- Change `PNGs` to `PNG files`
+- *(error)* Add documentation for errors of check_subtitles
+- *(cargo)* Add 'pgs' as keyword for crate
+
+### 🎨 Styling
+
+- Update to multiline `use`
+- Inline format args
+- *(cargo)* Move dependencies before lints setup
+
+### ⚙️ Miscellaneous Tasks
+
+- *(typos)* Add typos step in code_check ci workflow
+- *(github)* Update runs-on to `ubuntu-latest`
+
 ## [0.2.0] - 2024-07-18
 
 ### 🚀 Features
