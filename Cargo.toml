@@ -12,6 +12,29 @@ homepage = "https://github.com/gwen-lg/subtile-ocr"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[dependencies]
+anyhow = "1.0"
+clap = { version = "4.4", features = ["cargo", "derive"] }
+image = { version = "0.25", default-features = false, features = [
+    "png",
+    "pnm",
+] }
+iter_fixed = "0.4"
+leptess = "0.14"
+log = "0.4"
+profiling = "1.0"
+rayon = "1.8"
+scoped-tls-hkt = "0.1"
+simple_logger = { version = "5.0", features = ["colors"] }
+subtile = "0.2"
+thiserror = "1.0"
+puffin = { version = "0.19", features = ["serialization"], optional = true }
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+
+[features]
+default = []
+profile-with-puffin = ["profiling/profile-with-puffin", "dep:puffin"]
+
 [lints.rust]
 missing_docs = "deny"
 unused_imports = "deny"
@@ -43,26 +66,3 @@ trivially_copy_pass_by_ref = "deny"
 uninlined_format_args = "deny"
 unreadable_literal = "deny"
 useless_conversion = "deny"
-
-[dependencies]
-anyhow = "1.0"
-clap = { version = "4.4", features = ["cargo", "derive"] }
-image = { version = "0.25", default-features = false, features = [
-    "png",
-    "pnm",
-] }
-iter_fixed = "0.4"
-leptess = "0.14"
-log = "0.4"
-profiling = "1.0"
-rayon = "1.8"
-scoped-tls-hkt = "0.1"
-simple_logger = { version = "5.0", features = ["colors"] }
-subtile = "0.2"
-thiserror = "1.0"
-puffin = { version = "0.19", features = ["serialization"], optional = true }
-chrono = { version = "0.4", default-features = false, features = ["clock"] }
-
-[features]
-default = []
-profile-with-puffin = ["profiling/profile-with-puffin", "dep:puffin"]
