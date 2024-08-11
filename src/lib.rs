@@ -20,7 +20,7 @@ use std::{
     path::PathBuf,
 };
 use subtile::{
-    image::{dump_images, luma_a_to_luma, ToImage, ToOcrImage, ToOcrImageOpt},
+    image::{dump_images, luma_a_to_luma_convertor, ToImage, ToOcrImage, ToOcrImageOpt},
     pgs::{self, DecodeTimeImage, RleToImage},
     srt,
     time::TimeSpan,
@@ -141,7 +141,9 @@ pub fn process_pgs(opt: &Opt) -> Result<(Vec<TimeSpan>, Vec<GrayImage>), Error> 
         dump_images("dumps_raw", images).map_err(Error::DumpImage)?;
     }
 
-    let conv_fn = luma_a_to_luma::<_, _, 100, 100>; // Hardcoded value for alpha and luma threshold than work not bad.
+    // Alternative value : [1] - A: 255 L:190 | [2] - A: 200 L:150 | [3] - A: 100 L:100
+    let conv_fn = luma_a_to_luma_convertor(100, 100);
+    // let conv_fn = luma_a_to_luma::<_, _, 100, 100>;
 
     let images = {
         profiling::scope!("Convert images for OCR");
