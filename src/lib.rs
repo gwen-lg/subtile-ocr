@@ -1,6 +1,7 @@
 #![doc = include_str!("../README.md")]
 
 mod ocr;
+mod ocs;
 mod opt;
 mod preprocessor;
 
@@ -60,6 +61,9 @@ pub enum Error {
     #[error("Error happen during OCR on {0} subtitles images")]
     OcrFails(u32),
 
+    #[error("Failed to split subtitle image into character image")]
+    OcsSplit(#[source] ocs::Error),
+
     #[error("Could not generate SRT file: {message}")]
     GenerateSrt { message: String },
 
@@ -101,6 +105,19 @@ pub fn run(opt: &Opt) -> Result<(), Error> {
     if opt.dump {
         dump_images("dumps", &images).map_err(Error::DumpImage)?;
     }
+
+    // test image split
+    let test_img_iter = images.iter().skip(9).take(5); //TODO: remove
+    dump_images("dump", test_img_iter.clone()).map_err(Error::DumpImage)?;
+    test_img_iter
+        .into_iter()
+        .enumerate()
+        .try_for_each(|(idx, img)| {
+            let splitter = ocs::ImageCharacterSplitter::from_image(img);
+            let pieces = splitter.split_in_character_img().map_err(Error::OcsSplit)?;
+            let foldername = format!("dumpsplit_{idx}");
+            dump_images(foldername.as_str(), pieces.images()).map_err(Error::DumpImage)
+        })?;
 
     let ocr_opt = OcrOpt::new(&opt.tessdata_dir, opt.lang.as_str(), &opt.config, opt.dpi);
     let texts = ocr::process(images, &ocr_opt)?;
