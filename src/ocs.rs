@@ -1,21 +1,94 @@
 use image::{GrayImage, Luma};
+use subtile::content::{Area, AreaValues};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("The image is not correctly prepared, some pixels are not white or black")]
     ImageWithGrayIsInvalid,
+
+    #[error("No character found")]
+    NoCharactersFound,
+}
+
+struct Piece {
+    area: Area,
+    // x: u32,
+    // y: u32,
+    // width: u32,
+    // height: u32,
+    /// list of pixels of the letter
+    pixels: Vec<(u32, u32)>,
+    img: Option<GrayImage>,
+}
+
+impl Piece {
+    pub fn new(pixels: Vec<(u32, u32)>) -> Self {
+        let x1 = pixels.iter().map(|(x, _)| *x).reduce(u32::min).unwrap();
+        let y1 = pixels.iter().map(|(_, y)| *y).reduce(u32::min).unwrap();
+        let x2 = pixels.iter().map(|(x, _)| *x).reduce(u32::max).unwrap();
+        let y2 = pixels.iter().map(|(_, y)| *y).reduce(u32::max).unwrap();
+
+        let area = Area::try_from(AreaValues {
+            x1: x1.try_into().unwrap(),
+            y1: y1.try_into().unwrap(),
+            x2: x2.try_into().unwrap(),
+            y2: y2.try_into().unwrap(),
+        })
+        .unwrap();
+
+        Self {
+            area,
+            // x,
+            // y,
+            // width: x_max - x,
+            // height: y_max - y,
+            pixels,
+            img: None,
+        }
+    }
+
+    pub fn area(&self) -> Area {
+        self.area
+    }
+    // pub fn point_min(&self) -> (u16, u16) {
+    //     (self.area.left(), self.area.top())
+    // }
+    // pub fn point_max(&self) -> (u32, u32) {
+    //     (self.x + self.width, self.y + self.height)
+    // }
+    pub fn pixels(&self) -> &[(u32, u32)] {
+        &self.pixels
+    }
+    pub fn create_img(&mut self) {
+        assert!(self.img.is_none());
+
+        let img = GrayImage::from_fn(
+            u32::from(self.area.width()),
+            u32::from(self.area.height()),
+            |x, y| {
+                let x = x + u32::from(self.area.left());
+                let y = y + u32::from(self.area.top());
+                if self.pixels.contains(&(x, y)) {
+                    COLOR_BLACK
+                } else {
+                    COLOR_WHITE
+                }
+            },
+        );
+        self.img = Some(img);
+    }
 }
 
 /// Result of a split
 pub struct ImagePieces {
-    pieces: Vec<GrayImage>,
+    pieces: Vec<Piece>,
 }
 
 impl ImagePieces {
     /// return a ref on slice
-    pub fn images(&self) -> &[GrayImage] {
-        self.pieces.as_slice()
+    pub fn images(&self) -> impl Iterator<Item = &GrayImage> {
+        self.pieces.iter().map(|piece| piece.img.as_ref().unwrap())
     }
 }
 
@@ -39,8 +112,8 @@ impl ImageCharacterSplitter {
         let mut pieces = vec![];
 
         let (width, height) = image.dimensions();
-        (0..width).try_for_each(|x| {
-            (0..height).try_for_each(|y| {
+        (0..height).try_for_each(|y| {
+            (0..width).try_for_each(|x| {
                 let pixel_color = image.get_pixel(x, y);
                 if *pixel_color == COLOR_BLACK {
                     let new_piece = cut_piece(x, y, &mut image);
@@ -54,67 +127,60 @@ impl ImageCharacterSplitter {
             })
         })?;
 
+        if pieces.is_empty() {
+            return Err(Error::NoCharactersFound);
+        }
+
+        let mut lines: Vec<Area> = Vec::new();
+        pieces.iter().for_each(|piece| {
+            if let Some(line) = lines
+                .iter_mut()
+                .find(|line| (*line).intersect_y(piece.area()))
+            {
+                line.extend(piece.area());
+            }
+            let new_line = piece.area();
+            lines.push(new_line);
+        });
+
+        pieces.iter_mut().for_each(|piece| piece.create_img());
+
         Ok(ImagePieces { pieces })
     }
 }
 
-fn cut_piece(x: u32, y: u32, image: &mut GrayImage) -> GrayImage {
+fn cut_piece(x: u32, y: u32, image: &mut GrayImage) -> Piece {
     let (image_width, image_height) = image.dimensions();
     let mut piece_pixels = vec![(x, y)];
     let mut cur_pix_idx = 0;
 
     while cur_pix_idx < piece_pixels.len() {
         let (x, y) = piece_pixels[cur_pix_idx];
-        if x < (image_width - 1) && *image.get_pixel(x + 1, y) == COLOR_BLACK {
-            piece_pixels.push((x + 1, y));
-            *image.get_pixel_mut(x + 1, y) = COLOR_WHITE;
+
+        // non-diagonal adjacent pixels
+        let mut adjacent_pixels = Vec::with_capacity(4); //TODO: array vec
+        if x > 0 {
+            adjacent_pixels.push((x - 1, y));
         }
-        if x > 0 && *image.get_pixel(x - 1, y) == COLOR_BLACK {
-            piece_pixels.push((x - 1, y));
-            *image.get_pixel_mut(x - 1, y) = COLOR_WHITE;
+        if x < (image_width - 1) {
+            adjacent_pixels.push((x + 1, y));
         }
-        if y > 0 && *image.get_pixel(x, y - 1) == COLOR_BLACK {
-            piece_pixels.push((x, y - 1));
-            *image.get_pixel_mut(x, y - 1) = COLOR_WHITE;
+        if y > 0 {
+            adjacent_pixels.push((x, y - 1));
         }
-        if y < (image_height - 1) && *image.get_pixel(x, y + 1) == COLOR_BLACK {
-            piece_pixels.push((x, y + 1));
-            *image.get_pixel_mut(x, y + 1) = COLOR_WHITE;
+        if y < (image_height - 1) {
+            adjacent_pixels.push((x, y + 1));
         }
+
+        adjacent_pixels.into_iter().for_each(|(x, y)| {
+            if *image.get_pixel(x, y) == COLOR_BLACK {
+                piece_pixels.push((x, y));
+                *image.get_pixel_mut(x, y) = COLOR_WHITE;
+            }
+        });
 
         cur_pix_idx += 1;
     }
 
-    let x_min = piece_pixels
-        .iter()
-        .map(|(x, _)| *x)
-        .reduce(u32::min)
-        .unwrap();
-    let x_max = piece_pixels
-        .iter()
-        .map(|(x, _)| *x)
-        .reduce(u32::max)
-        .unwrap();
-    let y_min = piece_pixels
-        .iter()
-        .map(|(_, y)| *y)
-        .reduce(u32::min)
-        .unwrap();
-    let y_max = piece_pixels
-        .iter()
-        .map(|(_, y)| *y)
-        .reduce(u32::max)
-        .unwrap();
-    let width = x_max - x_min;
-    let height = y_max - y_min;
-
-    GrayImage::from_fn(width, height, |x, y| {
-        let x = x + x_min;
-        let y = y + y_min;
-        if piece_pixels.contains(&(x, y)) {
-            COLOR_BLACK
-        } else {
-            COLOR_WHITE
-        }
-    })
+    Piece::new(piece_pixels)
 }
