@@ -64,3 +64,6 @@ trivially_copy_pass_by_ref = "deny"
 uninlined_format_args = "deny"
 unreadable_literal = "deny"
 useless_conversion = "deny"
+
+[patch.crates-io]
+subtile = { path = "../subtile" }
