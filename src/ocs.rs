@@ -65,15 +65,39 @@ impl Piece {
     }
 }
 
+/// Line of pieces
+pub struct Line {
+    area: Area,
+    pieces: Vec<Piece>,
+}
+
+impl Line {
+    pub fn from_piece(piece: Piece) -> Self {
+        Self {
+            area: piece.area(),
+            pieces: vec![piece],
+        }
+    }
+    pub fn extend_with_piece(&mut self, piece: Piece) {
+        self.area.extend(piece.area());
+        self.pieces.push(piece);
+    }
+    pub fn sort_pieces(&mut self) {
+        self.pieces.sort_by_key(|piece| piece.area().left());
+    }
+}
+
 /// Result of a split
 pub struct ImagePieces {
-    pieces: Vec<Piece>,
+    lines: Vec<Line>,
 }
 
 impl ImagePieces {
     /// return a ref on slice
-    pub fn images(&self) -> impl Iterator<Item = &GrayImage> {
-        self.pieces.iter().map(|piece| piece.img.as_ref().unwrap())
+    pub fn images(&self) -> impl Iterator<Item = impl Iterator<Item = &GrayImage>> {
+        self.lines
+            .iter()
+            .map(|line| line.pieces.iter().map(|piece| piece.img.as_ref().unwrap()))
     }
 }
 
@@ -92,14 +116,22 @@ impl ImageCharacterSplitter {
 
     /// Split image into a list of character image
     pub fn split_in_character_img(self) -> Result<ImagePieces, Error> {
-        let mut pieces = Self::split_in_pieces(self.img)?;
+        let pieces = Self::split_in_pieces(self.img)?;
         if pieces.is_empty() {
             return Err(Error::NoCharactersFound);
         }
 
-        pieces.iter_mut().for_each(|piece| piece.create_img());
+        // Compute lines from pieces
+        let mut lines = Self::organize_pieces_in_lines(pieces);
 
-        Ok(ImagePieces { pieces })
+        // sort pieces in lines by left coordinate. Need to be configurable to manage languages with right to left order.
+        lines.iter_mut().for_each(|line| line.sort_pieces());
+
+        lines
+            .iter_mut()
+            .for_each(|line| line.pieces.iter_mut().for_each(|piece| piece.create_img()));
+
+        Ok(ImagePieces { lines })
     }
 
     // Split the image into part of adjacent pixels
@@ -122,6 +154,22 @@ impl ImageCharacterSplitter {
         })?;
 
         Ok(pieces)
+    }
+
+    // Organize the pieces in lines
+    fn organize_pieces_in_lines(mut pieces: Vec<Piece>) -> Vec<Line> {
+        let mut lines: Vec<Line> = Vec::with_capacity(2);
+        pieces.drain(..).for_each(|piece| {
+            if let Some(line) = lines
+                .iter_mut()
+                .find(|Line { area, .. }| area.intersect_y(piece.area()))
+            {
+                line.extend_with_piece(piece);
+            } else {
+                lines.push(Line::from_piece(piece));
+            }
+        });
+        lines
     }
 }
 
