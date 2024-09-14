@@ -11,6 +11,7 @@ pub enum Error {
     NoCharactersFound,
 }
 
+#[derive(Debug, Clone)]
 struct Piece {
     area: Area,
     // x: u32,
@@ -82,13 +83,16 @@ impl Piece {
 
 /// Result of a split
 pub struct ImagePieces {
-    pieces: Vec<Piece>,
+    lines: Vec<(Area, Vec<Piece>)>,
 }
 
 impl ImagePieces {
     /// return a ref on slice
     pub fn images(&self) -> impl Iterator<Item = &GrayImage> {
-        self.pieces.iter().map(|piece| piece.img.as_ref().unwrap())
+        self.lines
+            .iter()
+            .flat_map(|(_, pieces)| pieces)
+            .map(|piece| piece.img.as_ref().unwrap())
     }
 }
 
@@ -131,21 +135,34 @@ impl ImageCharacterSplitter {
             return Err(Error::NoCharactersFound);
         }
 
-        let mut lines: Vec<Area> = Vec::new();
+        let mut lines: Vec<(Area, Vec<Piece>)> = Vec::new();
         pieces.iter().for_each(|piece| {
-            if let Some(line) = lines
+            if let Some((line, pieces)) = lines
                 .iter_mut()
-                .find(|line| (*line).intersect_y(piece.area()))
+                .find(|(line, _)| line.intersect_y(piece.area()))
             {
                 line.extend(piece.area());
+                pieces.push((*piece).clone());
+            } else {
+                let new_line = piece.area();
+                lines.push((new_line, vec![(*piece).clone()]));
             }
-            let new_line = piece.area();
-            lines.push(new_line);
         });
+        // let glyphs_lines = lines.iter().map(|(line, pieces| {
+        //     let (glyphs_line, remaining) = pieces
+        //         .into_iter()
+        //         .partition::<Vec<_>, _>(|piece| line.contains(piece.area()));
+        // });
+        //TODO: manage line with only accents
+        lines
+            .iter_mut()
+            .for_each(|(_, pieces)| pieces.sort_by_key(|piece| piece.area().left()));
 
-        pieces.iter_mut().for_each(|piece| piece.create_img());
+        lines
+            .iter_mut()
+            .for_each(|(_, pieces)| pieces.iter_mut().for_each(|piece| piece.create_img()));
 
-        Ok(ImagePieces { pieces })
+        Ok(ImagePieces { lines })
     }
 }
 
