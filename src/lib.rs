@@ -10,10 +10,11 @@ pub use crate::{ocr::OcrOpt, opt::Opt};
 
 use crossterm::event::{self, KeyCode, KeyEventKind};
 use glyph::{Glyph, GlyphLibrary};
-use image::{GrayImage, LumaA};
+use image::{DynamicImage, GrayImage, LumaA};
 use log::warn;
 use preprocessor::rgb_palette_to_luminance;
 use ratatui::{prelude::Backend, widgets::Paragraph, Terminal};
+use ratatui_image::{picker::Picker, StatefulImage};
 use rayon::{
     iter::{IntoParallelRefIterator, ParallelIterator},
     ThreadPoolBuildError,
@@ -76,6 +77,9 @@ pub enum Error {
 
     #[error("Could not write SRT on stdout.")]
     WriteSrtStdout { source: io::Error },
+
+    #[error("Failed to init picker from term : {0}")]
+    Picker(String),
 }
 
 /// Run OCR for `opt`.
@@ -89,6 +93,9 @@ pub enum Error {
 /// Will forward error from `ocr` processing and [`check_subtitles`] if any.
 #[profiling::function]
 pub fn run(opt: &Opt, mut terminal: Terminal<impl Backend>) -> Result<(), Error> {
+    let mut picker = Picker::new((2, 3)); // (16, 24) Picker::from_termios().map_err(|source| Error::Picker(source.to_string()))?;
+    picker.guess_protocol();
+
     rayon::ThreadPoolBuilder::new()
         .thread_name(|idx| format!("Rayon_{idx}"))
         .build_global()
@@ -139,7 +146,12 @@ pub fn run(opt: &Opt, mut terminal: Terminal<impl Backend>) -> Result<(), Error>
                     } else {
                         terminal
                             .draw(|frame| {
+                                let mut piece_img = picker
+                                    .new_resize_protocol(DynamicImage::ImageLuma8(piece.clone()));
                                 let msg = Paragraph::new("What is this glyph ?");
+
+                                let image = StatefulImage::new(None);
+                                frame.render_stateful_widget(image, frame.area(), &mut piece_img);
                                 frame.render_widget(msg, frame.area());
                             })
                             .unwrap();
