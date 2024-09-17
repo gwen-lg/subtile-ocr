@@ -13,6 +13,7 @@ use image::{GrayImage, LumaA};
 use log::warn;
 use ocs::ImagePieces;
 use preprocessor::rgb_palette_to_luminance;
+use ratatui::{prelude::Backend, Terminal};
 use rayon::{
     iter::{IntoParallelRefIterator, ParallelIterator},
     ThreadPoolBuildError,
@@ -90,7 +91,7 @@ pub enum Error {
 /// Will return [`Error::WriteSrtFile`] of [`Error::WriteSrtStdout`] if failed to write subtitles as `srt`.
 /// Will forward error from `ocr` processing and [`check_subtitles`] if any.
 #[profiling::function]
-pub fn run(opt: &Opt) -> Result<(), Error> {
+pub fn run(opt: &Opt, terminal: Terminal<impl Backend>) -> Result<(), Error> {
     rayon::ThreadPoolBuilder::new()
         .thread_name(|idx| format!("Rayon_{idx}"))
         .build_global()
