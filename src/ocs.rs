@@ -63,6 +63,13 @@ impl Piece {
         );
         self.img = Some(img);
     }
+    pub fn extend(&mut self, mut other: Self) {
+        assert!(self.img.is_none()); // should be processed before img creation
+        assert!(self.area.intersect_x(other.area));
+
+        self.area.extend(other.area);
+        self.pixels.append(&mut other.pixels);
+    }
 }
 
 /// Line of pieces
@@ -84,6 +91,23 @@ impl Line {
     }
     pub fn sort_pieces(&mut self) {
         self.pieces.sort_by_key(|piece| piece.area().left());
+    }
+    pub fn group_accent(&mut self) {
+        //TODO: don't manage correctly all case, example with 'ï'
+        let mut new_pieces: Vec<Piece> = Vec::with_capacity(self.pieces.len());
+        self.pieces.drain(0..self.pieces.len()).for_each(|piece| {
+            if let Some(last_piece) = new_pieces.last_mut() {
+                if last_piece.area().contains_x(piece.area()) {
+                    last_piece.extend(piece);
+                } else {
+                    new_pieces.push(piece);
+                }
+            } else {
+                new_pieces.push(piece);
+            }
+        });
+
+        self.pieces = new_pieces;
     }
 }
 
@@ -126,6 +150,9 @@ impl ImageCharacterSplitter {
 
         // sort pieces in lines by left coordinate. Need to be configurable to manage languages with right to left order.
         lines.iter_mut().for_each(|line| line.sort_pieces());
+
+        // group accent piece with base glyph
+        lines.iter_mut().for_each(|line| line.group_accent());
 
         lines
             .iter_mut()
