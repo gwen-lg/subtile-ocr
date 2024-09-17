@@ -2,6 +2,8 @@ use image::{GrayImage, Luma};
 use subtile::content::{Area, AreaValues};
 use thiserror::Error;
 
+use crate::glyph::{Glyph, GlyphLibrary};
+
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("The image is not correctly prepared, some pixels are not white or black")]
@@ -12,7 +14,7 @@ pub enum Error {
 }
 
 #[derive(Debug, Clone)]
-struct Piece {
+pub struct Piece {
     area: Area,
     /// list of pixels of the letter
     pixels: Vec<(u32, u32)>,
@@ -122,6 +124,30 @@ impl ImagePieces {
         self.lines
             .iter()
             .map(|line| line.pieces.iter().map(|piece| piece.img.as_ref().unwrap()))
+    }
+
+    /// Process to recognize text of the image
+    pub fn process_to_text(&self, glyph_lib: &mut GlyphLibrary) -> Result<String, Error> {
+        // test to get character for glyph
+        let mut text = String::new();
+        self.lines.iter().for_each(|line| {
+            line.pieces.iter().for_each(|piece| {
+                let piece_img = piece.img.as_ref().unwrap();
+                let character = glyph_lib.find(piece_img);
+                if let Some(character) = character {
+                    text.push_str(character);
+                } else {
+                    println!("ask character");
+                    glyph_lib.add_glyph(Glyph::new(piece_img.clone(), None));
+                    todo!();
+                }
+            });
+
+            // Add `eol` to text
+            text.push('\n');
+        });
+
+        Ok::<_, Error>(text)
     }
 }
 

@@ -1,5 +1,6 @@
 #![doc = include_str!("../README.md")]
 
+mod glyph;
 mod ocr;
 mod ocs;
 mod opt;
@@ -7,6 +8,7 @@ mod preprocessor;
 
 pub use crate::{ocr::OcrOpt, opt::Opt};
 
+use glyph::GlyphLibrary;
 use image::{GrayImage, LumaA};
 use log::warn;
 use ocs::ImagePieces;
@@ -65,6 +67,9 @@ pub enum Error {
     #[error("Failed to split subtitle image into character image")]
     OcsSplit(#[source] ocs::Error),
 
+    #[error("Failed to extract text of the split subtitle image")]
+    OcsConvertToText(#[source] ocs::Error),
+
     #[error("Could not generate SRT file: {message}")]
     GenerateSrt { message: String },
 
@@ -107,20 +112,27 @@ pub fn run(opt: &Opt) -> Result<(), Error> {
         dump_images("dumps", &images).map_err(Error::DumpImage)?;
     }
 
+    let mut glyph_lib = GlyphLibrary::new();
+
     // test image split
     let test_img_iter = images.iter().skip(9).take(5); //TODO: remove
     dump_images("dump", test_img_iter.clone()).map_err(Error::DumpImage)?;
-    test_img_iter
+    let texts = test_img_iter
         .into_iter()
         .enumerate()
-        .try_for_each(|(idx, img)| {
+        .map(|(idx, img)| {
             let splitter = ocs::ImageCharacterSplitter::from_image(img);
             let pieces = splitter.split_in_character_img().map_err(Error::OcsSplit)?;
-            dump_sub_pieces(idx, &pieces)
-        })?;
+            dump_sub_pieces(idx, &pieces)?;
 
-    let ocr_opt = OcrOpt::new(&opt.tessdata_dir, opt.lang.as_str(), &opt.config, opt.dpi);
-    let texts = ocr::process(images, &ocr_opt)?;
+            pieces
+                .process_to_text(&mut glyph_lib)
+                .map_err(Error::OcsConvertToText)
+        })
+        .collect::<Vec<_>>();
+
+    //let ocr_opt = OcrOpt::new(&opt.tessdata_dir, opt.lang.as_str(), &opt.config, opt.dpi);
+    //let texts = ocr::process(images, &ocr_opt)?;
     let subtitles = check_subtitles(times.into_iter().zip(texts))?;
 
     // Create subtitle file.
