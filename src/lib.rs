@@ -16,6 +16,7 @@ use log::warn;
 use ocs::ImagePieces;
 use preprocessor::rgb_palette_to_luminance;
 use ratatui::{prelude::Backend, Terminal};
+use ratatui_image::picker::Picker;
 use rayon::{
     iter::{IntoParallelRefIterator, ParallelIterator},
     ThreadPoolBuildError,
@@ -81,6 +82,9 @@ pub enum Error {
 
     #[error("Could not write SRT on stdout.")]
     WriteSrtStdout { source: io::Error },
+
+    #[error("Failed to init picker from term : {0}")]
+    Picker(String),
 }
 
 /// Run OCR for `opt`.
@@ -94,6 +98,9 @@ pub enum Error {
 /// Will forward error from `ocr` processing and [`check_subtitles`] if any.
 #[profiling::function]
 pub fn run(opt: &Opt, terminal: Terminal<impl Backend>) -> Result<(), Error> {
+    let mut picker = Picker::new((2, 3)); // (16, 24) Picker::from_termios().map_err(|source| Error::Picker(source.to_string()))?;
+    picker.guess_protocol();
+
     rayon::ThreadPoolBuilder::new()
         .thread_name(|idx| format!("Rayon_{idx}"))
         .build_global()
@@ -117,7 +124,7 @@ pub fn run(opt: &Opt, terminal: Terminal<impl Backend>) -> Result<(), Error> {
 
     let mut glyph_lib = GlyphLibrary::new();
 
-    let asker = GlyphAskerTerm::new(terminal);
+    let asker = GlyphAskerTerm::new(terminal, picker);
 
     // test image split
     let test_img_iter = images.iter().skip(9).take(5); //TODO: remove
