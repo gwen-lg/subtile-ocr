@@ -79,6 +79,13 @@ impl Piece {
         );
         self.img = Some(img);
     }
+    pub fn extend(&mut self, mut other: Self) {
+        assert!(self.img.is_none()); // should be processed before img creation
+        assert!(self.area.intersect_x(other.area));
+
+        self.area.extend(other.area);
+        self.pixels.append(&mut other.pixels);
+    }
 }
 
 /// Result of a split
@@ -88,11 +95,10 @@ pub struct ImagePieces {
 
 impl ImagePieces {
     /// return a ref on slice
-    pub fn images(&self) -> impl Iterator<Item = &GrayImage> {
+    pub fn images(&self) -> impl Iterator<Item = impl Iterator<Item = &GrayImage>> {
         self.lines
             .iter()
-            .flat_map(|(_, pieces)| pieces)
-            .map(|piece| piece.img.as_ref().unwrap())
+            .map(|(_, pieces)| pieces.iter().map(|piece| piece.img.as_ref().unwrap()))
     }
 }
 
@@ -148,15 +154,29 @@ impl ImageCharacterSplitter {
                 lines.push((new_line, vec![(*piece).clone()]));
             }
         });
-        // let glyphs_lines = lines.iter().map(|(line, pieces| {
-        //     let (glyphs_line, remaining) = pieces
-        //         .into_iter()
-        //         .partition::<Vec<_>, _>(|piece| line.contains(piece.area()));
-        // });
         //TODO: manage line with only accents
+
+        // sort pieces in lines by left coordinate. Need to be configurable to manage languages with right to left order.
         lines
             .iter_mut()
             .for_each(|(_, pieces)| pieces.sort_by_key(|piece| piece.area().left()));
+        // group accent piece with base glyph
+        lines.iter_mut().for_each(|(_, pieces)| {
+            let mut new_pieces: Vec<Piece> = Vec::new();
+            pieces.drain(0..pieces.len()).for_each(|piece| {
+                if let Some(last_piece) = new_pieces.last_mut() {
+                    if last_piece.area().intersect_x(piece.area()) {
+                        last_piece.extend(piece);
+                    } else {
+                        new_pieces.push(piece);
+                    }
+                } else {
+                    new_pieces.push(piece);
+                }
+            });
+
+            *pieces = new_pieces;
+        });
 
         lines
             .iter_mut()

@@ -115,8 +115,14 @@ pub fn run(opt: &Opt) -> Result<(), Error> {
         .try_for_each(|(idx, img)| {
             let splitter = ocs::ImageCharacterSplitter::from_image(img);
             let pieces = splitter.split_in_character_img().map_err(Error::OcsSplit)?;
-            let foldername = format!("dumpsplit_{idx}");
-            dump_images(foldername.as_str(), pieces.images()).map_err(Error::DumpImage)
+            let x = pieces
+                .images()
+                .enumerate()
+                .try_for_each(|(line_idx, images)| {
+                    let foldername = format!("dumpsplit_{idx}_{line_idx}");
+                    dump_images(foldername.as_str(), images).map_err(Error::DumpImage)
+                });
+            x
         })?;
 
     let ocr_opt = OcrOpt::new(&opt.tessdata_dir, opt.lang.as_str(), &opt.config, opt.dpi);
