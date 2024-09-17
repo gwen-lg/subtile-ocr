@@ -1,5 +1,6 @@
 #![doc = include_str!("../README.md")]
 
+mod glyph;
 mod ocr;
 mod ocs;
 mod opt;
@@ -7,6 +8,7 @@ mod preprocessor;
 
 pub use crate::{ocr::OcrOpt, opt::Opt};
 
+use glyph::{Glyph, GlyphLibrary};
 use image::{GrayImage, LumaA};
 use log::warn;
 use preprocessor::rgb_palette_to_luminance;
@@ -106,6 +108,8 @@ pub fn run(opt: &Opt) -> Result<(), Error> {
         dump_images("dumps", &images).map_err(Error::DumpImage)?;
     }
 
+    let mut glyph_lib = GlyphLibrary::new();
+
     // test image split
     let test_img_iter = images.iter().skip(15).take(2); // take(2)
     dump_images("dump", test_img_iter.clone()).map_err(Error::DumpImage)?;
@@ -122,8 +126,26 @@ pub fn run(opt: &Opt) -> Result<(), Error> {
                     let foldername = format!("dumpsplit_{idx}_{line_idx}");
                     dump_images(foldername.as_str(), images).map_err(Error::DumpImage)
                 });
-            x
+
+            // test to get character for glyph
+            let mut text = String::new();
+            pieces.images().for_each(|line| {
+                line.for_each(|piece| {
+                    let character = glyph_lib.find(piece);
+                    if let Some(character) = character {
+                        text.push_str(character);
+                    } else {
+                        println!("ask character");
+                        glyph_lib.add_glyph(Glyph::new(piece.clone(), None));
+                        todo!();
+                    }
+                });
+            });
+
+            x //TODO: remove
         })?;
+
+    glyph_lib.dump();
 
     let ocr_opt = OcrOpt::new(&opt.tessdata_dir, opt.lang.as_str(), &opt.config, opt.dpi);
     let texts = ocr::process(images, &ocr_opt)?;
