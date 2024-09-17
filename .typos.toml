@@ -2,6 +2,7 @@
 # Don't correct the crates name
 subtile = "subtile"
 subtile_ocr = "subtile_ocr"
+ratatui = "ratatui"
 
 [files]
 extend-exclude = ["CHANGELOG.md"]
