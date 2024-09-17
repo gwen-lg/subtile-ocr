@@ -8,10 +8,12 @@ mod preprocessor;
 
 pub use crate::{ocr::OcrOpt, opt::Opt};
 
+use crossterm::event::{self, KeyCode, KeyEventKind};
 use glyph::{Glyph, GlyphLibrary};
 use image::{GrayImage, LumaA};
 use log::warn;
 use preprocessor::rgb_palette_to_luminance;
+use ratatui::{prelude::Backend, widgets::Paragraph, Terminal};
 use rayon::{
     iter::{IntoParallelRefIterator, ParallelIterator},
     ThreadPoolBuildError,
@@ -86,7 +88,7 @@ pub enum Error {
 /// Will return [`Error::WriteSrtFile`] of [`Error::WriteSrtStdout`] if failed to write subtitles as `srt`.
 /// Will forward error from `ocr` processing and [`check_subtitles`] if any.
 #[profiling::function]
-pub fn run(opt: &Opt) -> Result<(), Error> {
+pub fn run(opt: &Opt, mut terminal: Terminal<impl Backend>) -> Result<(), Error> {
     rayon::ThreadPoolBuilder::new()
         .thread_name(|idx| format!("Rayon_{idx}"))
         .build_global()
@@ -135,9 +137,25 @@ pub fn run(opt: &Opt) -> Result<(), Error> {
                     if let Some(character) = character {
                         text.push_str(character);
                     } else {
-                        println!("ask character");
-                        glyph_lib.add_glyph(Glyph::new(piece.clone(), None));
-                        todo!();
+                        terminal
+                            .draw(|frame| {
+                                let msg = Paragraph::new("What is this glyph ?");
+                                frame.render_widget(msg, frame.area());
+                            })
+                            .unwrap();
+                        loop {
+                            if let event::Event::Key(key) = event::read().unwrap() {
+                                if key.kind == KeyEventKind::Press {
+                                    if let KeyCode::Char(char) = key.code {
+                                        glyph_lib.add_glyph(Glyph::new(
+                                            piece.clone(),
+                                            Some(String::from(char)),
+                                        ));
+                                        break;
+                                    }
+                                }
+                            }
+                        }
                     }
                 });
             });
