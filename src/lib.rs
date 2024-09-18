@@ -10,10 +10,10 @@ pub use crate::{ocr::OcrOpt, opt::Opt};
 
 use crossterm::event::{self, KeyCode, KeyEventKind};
 use glyph::{Glyph, GlyphLibrary};
-use image::{DynamicImage, GrayImage, LumaA};
+use image::{DynamicImage, GrayImage, LumaA, Pixel};
 use log::warn;
 use preprocessor::rgb_palette_to_luminance;
-use ratatui::{prelude::Backend, widgets::Paragraph, Terminal};
+use ratatui::{prelude::Backend, Terminal};
 use ratatui_image::{picker::Picker, StatefulImage};
 use rayon::{
     iter::{IntoParallelRefIterator, ParallelIterator},
@@ -144,26 +144,73 @@ pub fn run(opt: &Opt, mut terminal: Terminal<impl Backend>) -> Result<(), Error>
                     if let Some(character) = character {
                         text.push_str(character);
                     } else {
-                        terminal
-                            .draw(|frame| {
-                                let mut piece_img = picker
-                                    .new_resize_protocol(DynamicImage::ImageLuma8(piece.clone()));
-                                let msg = Paragraph::new("What is this glyph ?");
+                        let proximities = glyph_lib.find_closest(piece);
+                        // proximities.iter().for_each(|(sum, glyph)| {
+                        //     let nb_pixels = piece.len();
+                        //     let proximity = *sum as f32 / nb_pixels as f32;
+                        //     println!(
+                        //         "{:?} : {}/{} => {}",
+                        //         glyph.chars(),
+                        //         sum,
+                        //         nb_pixels,
+                        //         proximity
+                        //     );
+                        // });
+                        let ok = if let Some((sum, closest_glyph)) = proximities.first() {
+                            let nb_pixels = piece.len();
+                            let proximity = *sum as f32 / nb_pixels as f32;
+                            if proximity >= 0.95 {
+                                if let Some(character) = closest_glyph.chars() {
+                                    text.push_str(character);
+                                    true
+                                } else {
+                                    false
+                                }
+                            } else {
+                                false
+                            }
+                        } else {
+                            false
+                        };
 
-                                let image = StatefulImage::new(None);
-                                frame.render_stateful_widget(image, frame.area(), &mut piece_img);
-                                frame.render_widget(msg, frame.area());
-                            })
-                            .unwrap();
-                        loop {
-                            if let event::Event::Key(key) = event::read().unwrap() {
-                                if key.kind == KeyEventKind::Press {
-                                    if let KeyCode::Char(char) = key.code {
-                                        glyph_lib.add_glyph(Glyph::new(
-                                            piece.clone(),
-                                            Some(String::from(char)),
-                                        ));
-                                        break;
+                        if !ok {
+                            terminal
+                                .draw(|frame| {
+                                    let inverted_img = GrayImage::from_fn(
+                                        piece.width(),
+                                        piece.height(),
+                                        |x, y| {
+                                            let mut pixel = *piece.get_pixel(x, y);
+                                            pixel.invert();
+                                            pixel
+                                        },
+                                    );
+                                    let mut piece_img = picker.new_resize_protocol(
+                                        DynamicImage::ImageLuma8(inverted_img),
+                                    );
+                                    //let msg = Paragraph::new("What is this glyph ?");
+
+                                    let image = StatefulImage::new(None);
+                                    frame.render_stateful_widget(
+                                        image,
+                                        frame.area(),
+                                        &mut piece_img,
+                                    );
+                                    //frame.render_widget(msg, frame.area());
+                                })
+                                .unwrap();
+                            loop {
+                                if let event::Event::Key(key) = event::read().unwrap() {
+                                    if key.kind == KeyEventKind::Press {
+                                        if let KeyCode::Char(char) = key.code {
+                                            let characters = String::from(char);
+                                            text.push_str(characters.as_str());
+                                            glyph_lib.add_glyph(Glyph::new(
+                                                piece.clone(),
+                                                Some(characters),
+                                            ));
+                                            break;
+                                        }
                                     }
                                 }
                             }
