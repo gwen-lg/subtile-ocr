@@ -3,6 +3,7 @@
 subtile = "subtile"
 subtile_ocr = "subtile_ocr"
 ratatui = "ratatui"
+ratatui_image = "ratatui_image"
 
 [files]
 extend-exclude = ["CHANGELOG.md"]
