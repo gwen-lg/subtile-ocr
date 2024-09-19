@@ -1,15 +1,38 @@
+use derive_more::derive::AsRef;
 use image::GrayImage;
+use thiserror::Error;
+
+/// Errors of the glyph
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Failed to serialize a Glyph with ron format")]
+    GlyphRonSerialization(#[source] ron::Error),
+}
+
+/// Struct wrapper for `GlyphImage`
+/// Allow to implement `Serialize` and `Deserialize` from serialimage
+#[derive(AsRef, Debug, Eq, PartialEq)]
+#[repr(transparent)]
+struct GlyphImage(GrayImage);
+impl From<GrayImage> for GlyphImage {
+    fn from(img: GrayImage) -> Self {
+        Self(img)
+    }
+}
 
 /// struct to
 #[derive(Debug, PartialEq, Eq)]
 pub struct Glyph {
-    img: GrayImage,
+    img: GlyphImage,
     characters: Option<String>,
 }
 
 impl Glyph {
     pub fn new(img: GrayImage, characters: Option<String>) -> Self {
-        Self { img, characters }
+        Self {
+            img: img.into(),
+            characters,
+        }
     }
 
     pub fn chars(&self) -> Option<&String> {
@@ -31,8 +54,8 @@ impl GlyphLibrary {
         self.glyphs
             .iter()
             .find(|glyph| {
-                glyph_img.dimensions() == glyph.img.dimensions()
-                    && glyph_img.as_raw() == glyph.img.as_raw()
+                glyph_img.dimensions() == glyph.img.0.dimensions()
+                    && glyph_img.as_raw() == glyph.img.0.as_raw()
             })
             .and_then(|glyph| glyph.characters.as_deref())
     }
@@ -44,10 +67,11 @@ impl GlyphLibrary {
         let mut glyphs_proximity = self
             .glyphs
             .iter()
-            .filter(|glyph| glyph_img.dimensions() == glyph.img.dimensions())
+            .filter(|glyph| glyph_img.dimensions() == glyph.img.0.dimensions())
             .map(|glyph| {
                 let sum = glyph
                     .img
+                    .0
                     .iter()
                     .zip(glyph_img.iter())
                     .fold(0, |sum, (a, b)| {
