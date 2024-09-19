@@ -85,6 +85,9 @@ pub enum Error {
 
     #[error("Failed to init picker from term : {0}")]
     Picker(String),
+
+    #[error("Failed to save Glyphs Library")]
+    GlyphLibrarySave(#[source] glyph::Error),
 }
 
 /// Run OCR for `opt`.
@@ -121,6 +124,13 @@ pub fn run(opt: &Opt, terminal: Terminal<impl Backend>) -> Result<(), Error> {
     if opt.dump {
         dump_images("dumps", &images).map_err(Error::DumpImage)?;
     }
+
+    //TODO: use xdg::BaseDirectories
+    pub const HOME_PATH: &str = env!("HOME");
+    pub const APP_NAME: &str = env!("CARGO_PKG_NAME");
+    let mut app_path = PathBuf::from(HOME_PATH);
+    app_path.push(".local/share");
+    app_path.push(APP_NAME);
 
     let mut glyph_lib = GlyphLibrary::new();
 
