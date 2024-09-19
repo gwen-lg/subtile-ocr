@@ -28,6 +28,8 @@ puffin = { version = "0.19", features = ["serialization"], optional = true }
 ratatui = "0.28.1"
 ratatui-image = { version = "1.0.5", features = ["crossterm"] }
 rayon = "1.8"
+ron = "0.8.1"
+serde = { version = "1.0.210", features = ["derive"] }
 simple_logger = { version = "5.0", features = ["colors"] }
 subtile = "0.3"
 thiserror = "1.0"
