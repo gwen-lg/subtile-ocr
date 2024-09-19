@@ -21,7 +21,7 @@ use rayon::{
 };
 use std::{
     ffi::OsStr,
-    fs::File,
+    fs::{self, File},
     io::{self, BufReader, BufWriter},
     path::PathBuf,
 };
@@ -80,6 +80,12 @@ pub enum Error {
 
     #[error("Failed to init picker from term : {0}")]
     Picker(String),
+
+    #[error("Failed to open Glyphs Library file")]
+    GlyphsLibraryOpenFile(#[source] io::Error),
+
+    #[error("Failed to save Glyphs Library")]
+    GlyphLibrarySave(#[source] glyph::Error),
 }
 
 /// Run OCR for `opt`.
@@ -116,6 +122,16 @@ pub fn run(opt: &Opt, mut terminal: Terminal<impl Backend>) -> Result<(), Error>
     if opt.dump {
         dump_images("dumps", &images).map_err(Error::DumpImage)?;
     }
+
+    //TODO: use xdg::BaseDirectories
+    pub const HOME_PATH: &str = env!("HOME");
+    pub const APP_NAME: &str = env!("CARGO_PKG_NAME");
+    let mut app_path = PathBuf::from(HOME_PATH);
+    app_path.push(".local/share");
+    app_path.push(APP_NAME);
+
+    let mut glyph_library_filename = app_path.clone();
+    glyph_library_filename.push("glyph_library.ron");
 
     let mut glyph_lib = GlyphLibrary::new();
 
@@ -217,12 +233,18 @@ pub fn run(opt: &Opt, mut terminal: Terminal<impl Backend>) -> Result<(), Error>
                         }
                     }
                 });
+                text.push('\n');
             });
 
             x //TODO: remove
         })?;
 
-    glyph_lib.dump();
+    // TODO: move file management in glyph lib
+    fs::create_dir_all("/home/gwenlg/.local/share/subtile-ocr/")
+        .map_err(Error::GlyphsLibraryOpenFile)?;
+    let file = File::create_new(glyph_library_filename).map_err(Error::GlyphsLibraryOpenFile)?;
+    let writer = BufWriter::new(file);
+    glyph_lib.save(writer).map_err(Error::GlyphLibrarySave)?;
 
     let ocr_opt = OcrOpt::new(&opt.tessdata_dir, opt.lang.as_str(), &opt.config, opt.dpi);
     let texts = ocr::process(images, &ocr_opt)?;
