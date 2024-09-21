@@ -1,7 +1,7 @@
 use derive_more::derive::AsRef;
-use image::GrayImage;
+use image::{GrayImage, Luma};
 use ron::ser::PrettyConfig;
-use serde::{Deserialize, Serialize};
+use serde::{ser::SerializeSeq, Deserialize, Serialize};
 use serialimage::SerialImageBuffer;
 use std::io::{Read, Write};
 use thiserror::Error;
@@ -28,10 +28,24 @@ impl Serialize for GlyphImage {
     where
         S: serde::Serializer,
     {
-        let img = SerialImageBuffer::from(&self.0);
-        img.serialize(serializer)
+        if serializer.is_human_readable() {
+            let mut rows = self.0.enumerate_rows();
+            let mut seq = serializer.serialize_seq(Some(rows.len()))?;
+            rows.try_for_each(|(_idx, pixels)| {
+                let pixel_str = pixels.map(Self::pix_to_char).collect::<String>();
+
+                seq.serialize_element(pixel_str.as_str())
+            })?;
+            seq.end()
+        } else {
+            //TODO: serialize glyph size
+            let pixels = self.0.enumerate_pixels();
+            let pixel_str = pixels.map(Self::pix_to_char).collect::<String>();
+            serializer.serialize_str(pixel_str.as_str())
+        }
     }
 }
+
 impl<'de> Deserialize<'de> for GlyphImage {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -40,6 +54,19 @@ impl<'de> Deserialize<'de> for GlyphImage {
         let img = SerialImageBuffer::deserialize(deserializer)?;
         //let img: GrayImage = img.try_into().unwrap();
         Ok(Self(img.try_into().unwrap())) // TODO: remove unwrap
+    }
+}
+
+impl GlyphImage {
+    fn pix_to_char((_, _, pix): (u32, u32, &Luma<u8>)) -> char {
+        Self::luma_to_char(*pix)
+    }
+    fn luma_to_char(pix: Luma<u8>) -> char {
+        match pix.0 {
+            [0] => '8',
+            [255] => ' ',
+            _ => '?', //TODO: manage error
+        }
     }
 }
 
