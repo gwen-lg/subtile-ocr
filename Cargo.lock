@@ -779,12 +779,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "scoped-tls-hkt"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ddc765d3410d9f6c6ca071bf0b67f6b01e3ec4595dc3892f02677e75819dddc"
-
-[[package]]
 name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -871,13 +865,11 @@ dependencies = [
  "chrono",
  "clap",
  "image",
- "iter_fixed",
  "leptess",
  "log",
  "profiling",
  "puffin",
  "rayon",
- "scoped-tls-hkt",
  "simple_logger",
  "subtile",
  "thiserror",

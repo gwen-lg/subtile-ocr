@@ -20,13 +20,11 @@ image = { version = "0.25", default-features = false, features = [
     "png",
     "pnm",
 ] }
-iter_fixed = "0.4"
 leptess = "0.14"
 log = "0.4"
 profiling = "1.0"
 puffin = { version = "0.19", features = ["serialization"], optional = true }
 rayon = "1.8"
-scoped-tls-hkt = "0.1"
 simple_logger = { version = "5.0", features = ["colors"] }
 subtile = "0.3"
 thiserror = "1.0"
