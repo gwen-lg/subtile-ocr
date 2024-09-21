@@ -11,6 +11,9 @@ use thiserror::Error;
 pub enum Error {
     #[error("Failed to serialize a Glyph with ron format")]
     GlyphRonSerialization(#[source] ron::Error),
+
+    #[error("Failed to deserialize a Glyph with ron format")]
+    GlyphRonDeserialization(#[source] ron::de::SpannedError),
 }
 
 /// Struct wrapper for `GlyphImage`
@@ -140,12 +143,15 @@ impl GlyphLibrary {
         glyphs_proximity
     }
 
+    /// TODO
     pub fn add_glyph(&mut self, glyph: Glyph) {
         self.glyphs.push(glyph);
     }
 
-    pub fn load(&self, reader: impl Read) {
-        todo!();
+    /// TODO
+    pub fn load(&mut self, reader: impl Read) -> Result<(), Error> {
+        self.glyphs = ron::de::from_reader(reader).map_err(Error::GlyphRonDeserialization)?;
+        Ok(())
     }
 
     /// TODO

@@ -81,7 +81,7 @@ pub enum Error {
     #[error("Failed to init picker from term : {0}")]
     Picker(String),
 
-    #[error("Failed to open Glyphs Library file")]
+    #[error("Failed to open Glyphs Library file to write it")]
     GlyphsLibraryOpenFile(#[source] io::Error),
 
     #[error("Failed to save Glyphs Library")]
@@ -134,6 +134,20 @@ pub fn run(opt: &Opt, mut terminal: Terminal<impl Backend>) -> Result<(), Error>
     glyph_library_filename.push("glyph_library.ron");
 
     let mut glyph_lib = GlyphLibrary::new();
+    match File::open(glyph_library_filename.as_path()) {
+        Ok(file) => {
+            let reader = BufReader::new(file);
+            if let Err(err) = glyph_lib.load(reader) {
+                log::error!("Failed to load glyph library : {err}");
+            }
+        }
+        Err(err) if err.kind() == io::ErrorKind::NotFound => {
+            log::info!("There is no Glyph Library to load.");
+        }
+        Err(err) => {
+            log::warn!("Failed to open Glyph Library : {err}");
+        }
+    }
 
     // test image split
     let test_img_iter = images.iter().skip(15).take(2); // take(2)
@@ -240,9 +254,8 @@ pub fn run(opt: &Opt, mut terminal: Terminal<impl Backend>) -> Result<(), Error>
         })?;
 
     // TODO: move file management in glyph lib
-    fs::create_dir_all("/home/gwenlg/.local/share/subtile-ocr/")
-        .map_err(Error::GlyphsLibraryOpenFile)?;
-    let file = File::create_new(glyph_library_filename).map_err(Error::GlyphsLibraryOpenFile)?;
+    fs::create_dir_all(app_path.as_path()).map_err(Error::GlyphsLibraryOpenFile)?;
+    let file = File::create(glyph_library_filename).map_err(Error::GlyphsLibraryOpenFile)?;
     let writer = BufWriter::new(file);
     glyph_lib.save(writer).map_err(Error::GlyphLibrarySave)?;
 
