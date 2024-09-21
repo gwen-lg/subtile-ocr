@@ -133,6 +133,19 @@ pub fn run(opt: &Opt, terminal: Terminal<impl Backend>) -> Result<(), Error> {
     app_path.push(APP_NAME);
 
     let mut glyph_lib = GlyphLibrary::new();
+    if let Err(err) = glyph_lib.load_from_path(app_path.clone()) {
+        match err {
+            glyph::Error::NoFileToLoad(_) => {
+                log::info!("There is no Glyph Library to load.");
+            }
+            glyph::Error::FailedToLoadFile(err) => {
+                log::warn!("Failed to load Glyph Library from file : {err}");
+            }
+            _ => {
+                log::error!("error not managed : {err}");
+            }
+        }
+    }
 
     let asker = GlyphAskerTerm::new(terminal, picker);
 

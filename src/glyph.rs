@@ -9,7 +9,7 @@ use serde::{
 use std::{
     fmt,
     fs::{self, File},
-    io::{self, BufWriter, Write},
+    io::{self, BufReader, BufWriter, Read, Write},
     path::PathBuf,
 };
 use thiserror::Error;
@@ -25,6 +25,15 @@ pub enum Error {
 
     #[error("Failed to serialize a Glyph with ron format")]
     GlyphRonSerialization(#[source] ron::Error),
+
+    #[error("Failed to deserialize a Glyph with ron format")]
+    GlyphRonDeserialization(#[source] ron::de::SpannedError),
+
+    #[error("There is no Glyph Library to load.")]
+    NoFileToLoad(#[source] io::Error),
+
+    #[error("Failed to load Glyph Library")]
+    FailedToLoadFile(#[source] io::Error),
 
     #[error("Failed to create directory for save Glyphs Library")]
     GlyphsLibraryCreateDirectory(#[source] io::Error),
@@ -258,6 +267,28 @@ impl GlyphLibrary {
     /// Add a glyph in Library
     pub fn add_glyph(&mut self, glyph: Glyph) {
         self.glyphs.push(glyph);
+    }
+
+    /// Load Library from a `path` where the library was previously backuped.
+    pub fn load_from_path(&mut self, path: impl Into<PathBuf>) -> Result<(), Error> {
+        let mut glyph_library_filename = path.into();
+        glyph_library_filename.push(LIBRARY_FILENAME);
+        let file = File::open(glyph_library_filename).map_err(|source| {
+            if source.kind() == io::ErrorKind::NotFound {
+                Error::NoFileToLoad(source)
+            } else {
+                Error::FailedToLoadFile(source)
+            }
+        })?;
+        let reader = BufReader::new(file);
+        self.load(reader)
+    }
+
+    /// Deserialize glyph Library and load it in self
+    pub fn load(&mut self, reader: impl Read) -> Result<(), Error> {
+        assert!(self.glyphs.is_empty()); //TODO: Report the error to the user
+        self.glyphs = ron::de::from_reader(reader).map_err(Error::GlyphRonDeserialization)?;
+        Ok(())
     }
 
     /// Save the Library into a `path`.
