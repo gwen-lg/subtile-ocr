@@ -1,9 +1,11 @@
 use derive_more::derive::AsRef;
 use image::{GrayImage, Luma};
 use ron::ser::PrettyConfig;
-use serde::{ser::SerializeSeq, Deserialize, Serialize};
-use serialimage::SerialImageBuffer;
-use std::io::{Read, Write};
+use serde::{de::Visitor, ser::SerializeSeq, Deserialize, Serialize};
+use std::{
+    fmt,
+    io::{Read, Write},
+};
 use thiserror::Error;
 
 /// Errors of the glyph
@@ -49,14 +51,65 @@ impl Serialize for GlyphImage {
     }
 }
 
+struct GlyphImageVisitor;
+impl<'de> Visitor<'de> for GlyphImageVisitor {
+    type Value = GlyphImage;
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("an array of pixel with character ' ' for white and '8' for black")
+    }
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+    where
+        A: serde::de::SeqAccess<'de>,
+    {
+        let mut rows: Vec<String> = Vec::new();
+        while let Some(elem) = seq.next_element()? {
+            rows.push(elem);
+        }
+
+        let height = rows.len();
+        if height > 0 {
+            let width = rows[0].len();
+            //let pixels: Vec<u8> = Vec::with_capacity(width * height);
+            let pixels = rows
+                .iter()
+                .flat_map(|row_pixels| {
+                    row_pixels.chars().map(|pixel_str| match pixel_str {
+                        '8' => 0u8,
+                        ' ' => 255u8,
+                        _ => 125u8, //Todo, manage error
+                    })
+                })
+                .collect::<Vec<_>>();
+            let image = GrayImage::from_vec(width as u32, height as u32, pixels).unwrap();
+            Ok(image.into())
+        } else {
+            Err(<A::Error as serde::de::Error>::custom("Empty glyph image"))
+        }
+
+        //TODO: handle no human readable
+    }
+    // fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+    // where
+    //     E: serde::de::Error,
+    // {
+    //     v
+    // }
+}
+
 impl<'de> Deserialize<'de> for GlyphImage {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
-        let img = SerialImageBuffer::deserialize(deserializer)?;
-        //let img: GrayImage = img.try_into().unwrap();
-        Ok(Self(img.try_into().unwrap())) // TODO: remove unwrap
+        assert!(deserializer.is_human_readable());
+        let visitor = GlyphImageVisitor {};
+        // let width = 10; //TODO
+        // let height = 10; //TODO
+        deserializer.deserialize_seq(visitor)
+        //todo!();
+        // let glyph_pixel = vec![];
+        // let img = GrayImage::from_vec(width, height, glyph_pixel).unwrap();
+        //Ok(Self(img.try_into().unwrap())) // TODO: remove unwrap
     }
 }
 
