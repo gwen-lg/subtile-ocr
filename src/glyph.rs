@@ -2,10 +2,12 @@ use derive_more::derive::AsRef;
 use image::{GrayImage, Luma};
 use ron::ser::PrettyConfig;
 use serde::{
+    de::{self, Visitor},
     ser::{self, SerializeSeq},
-    Serialize,
+    Deserialize, Serialize,
 };
 use std::{
+    fmt,
     fs::{self, File},
     io::{self, BufWriter, Write},
     path::PathBuf,
@@ -17,6 +19,9 @@ use thiserror::Error;
 pub enum Error {
     #[error("Invalid pixel value `{0}` for serialization")]
     PixelSerializeInvalidValue(u8),
+
+    #[error("Invalid pixel value `{0}` for deserialization")]
+    PixelsDeserializeInvalidValue(char),
 
     #[error("Failed to serialize a Glyph with ron format")]
     GlyphRonSerialization(#[source] ron::Error),
@@ -50,6 +55,13 @@ impl GlyphImage {
             [val] => Err(Error::PixelSerializeInvalidValue(val)),
         }
     }
+    fn char_to_pix(pix: char) -> Result<u8, Error> {
+        match pix {
+            '8' => Ok(0u8),
+            ' ' => Ok(255u8),
+            c => Err(Error::PixelsDeserializeInvalidValue(c)),
+        }
+    }
 }
 
 impl Serialize for GlyphImage {
@@ -81,8 +93,53 @@ impl Serialize for GlyphImage {
     }
 }
 
+struct GlyphImageHumanVisitor;
+impl<'de> Visitor<'de> for GlyphImageHumanVisitor {
+    type Value = GlyphImage;
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("an array of pixel with character ' ' for white and '8' for black")
+    }
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+    where
+        A: serde::de::SeqAccess<'de>,
+    {
+        let mut rows: Vec<String> = Vec::new();
+        while let Some(elem) = seq.next_element()? {
+            rows.push(elem);
+        }
+
+        let height = rows.len();
+        if height > 0 {
+            let width = rows[0].len();
+            //let pixels: Vec<u8> = Vec::with_capacity(width * height);
+            let pixels = rows
+                .iter()
+                .flat_map(|row_pixels| {
+                    row_pixels
+                        .chars()
+                        .map(|p| GlyphImage::char_to_pix(p).map_err(de::Error::custom))
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            let image = GrayImage::from_vec(width as u32, height as u32, pixels).unwrap();
+            Ok(image.into())
+        } else {
+            Err(<A::Error as serde::de::Error>::custom("Empty glyph image"))
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for GlyphImage {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        assert!(deserializer.is_human_readable()); //TODO: handle no human readable
+        deserializer.deserialize_seq(GlyphImageHumanVisitor)
+    }
+}
+
 /// struct to
-#[derive(Debug, PartialEq, Eq, Serialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Glyph {
     img: GlyphImage,
     characters: Option<String>,
