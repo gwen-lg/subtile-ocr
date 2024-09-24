@@ -69,18 +69,39 @@ impl Piece {
     }
 }
 
+/// Line of pieces
+pub struct Line {
+    area: Area,
+    pieces: Vec<Piece>,
+}
+
+impl Line {
+    pub fn from_piece(piece: Piece) -> Self {
+        Self {
+            area: piece.area(),
+            pieces: vec![piece],
+        }
+    }
+    pub fn extend_with_piece(&mut self, piece: Piece) {
+        self.area.extend(piece.area());
+        self.pieces.push(piece);
+    }
+    pub fn sort_pieces(&mut self) {
+        self.pieces.sort_by_key(|piece| piece.area().left());
+    }
+}
+
 /// Result of a split
 pub struct ImagePieces {
-    lines: Vec<(Area, Vec<Piece>)>,
+    lines: Vec<Line>,
 }
 
 impl ImagePieces {
     /// return a ref on slice
-    pub fn images(&self) -> impl Iterator<Item = &GrayImage> {
+    pub fn images(&self) -> impl Iterator<Item = impl Iterator<Item = &GrayImage>> {
         self.lines
             .iter()
-            .flat_map(|(_, pieces)| pieces)
-            .map(|piece| piece.img.as_ref().unwrap())
+            .map(|line| line.pieces.iter().map(|piece| piece.img.as_ref().unwrap()))
     }
 }
 
@@ -123,32 +144,25 @@ impl ImageCharacterSplitter {
             return Err(Error::NoCharactersFound);
         }
 
-        let mut lines: Vec<(Area, Vec<Piece>)> = Vec::new();
-        pieces.iter().for_each(|piece| {
-            if let Some((line, pieces)) = lines
+        let mut lines: Vec<Line> = Vec::new();
+        pieces.drain(..).for_each(|piece| {
+            if let Some(line) = lines
                 .iter_mut()
-                .find(|(line, _)| line.intersect_y(piece.area()))
+                .find(|Line { area, .. }| area.intersect_y(piece.area()))
             {
-                line.extend(piece.area());
-                pieces.push((*piece).clone());
+                line.extend_with_piece(piece);
             } else {
-                let new_line = piece.area();
-                lines.push((new_line, vec![(*piece).clone()]));
+                lines.push(Line::from_piece(piece));
             }
         });
-        // let glyphs_lines = lines.iter().map(|(line, pieces| {
-        //     let (glyphs_line, remaining) = pieces
-        //         .into_iter()
-        //         .partition::<Vec<_>, _>(|piece| line.contains(piece.area()));
-        // });
         //TODO: manage line with only accents
-        lines
-            .iter_mut()
-            .for_each(|(_, pieces)| pieces.sort_by_key(|piece| piece.area().left()));
+
+        // sort pieces in lines by left coordinate. Need to be configurable to manage languages with right to left order.
+        lines.iter_mut().for_each(|line| line.sort_pieces());
 
         lines
             .iter_mut()
-            .for_each(|(_, pieces)| pieces.iter_mut().for_each(|piece| piece.create_img()));
+            .for_each(|line| line.pieces.iter_mut().for_each(|piece| piece.create_img()));
 
         Ok(ImagePieces { lines })
     }

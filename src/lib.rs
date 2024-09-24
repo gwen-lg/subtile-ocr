@@ -9,6 +9,7 @@ pub use crate::{ocr::OcrOpt, opt::Opt};
 
 use image::{GrayImage, LumaA};
 use log::warn;
+use ocs::ImagePieces;
 use preprocessor::rgb_palette_to_luminance;
 use rayon::{
     iter::{IntoParallelRefIterator, ParallelIterator},
@@ -115,8 +116,7 @@ pub fn run(opt: &Opt) -> Result<(), Error> {
         .try_for_each(|(idx, img)| {
             let splitter = ocs::ImageCharacterSplitter::from_image(img);
             let pieces = splitter.split_in_character_img().map_err(Error::OcsSplit)?;
-            let foldername = format!("dumpsplit_{idx}");
-            dump_images(foldername.as_str(), pieces.images()).map_err(Error::DumpImage)
+            dump_sub_pieces(idx, &pieces)
         })?;
 
     let ocr_opt = OcrOpt::new(&opt.tessdata_dir, opt.lang.as_str(), &opt.config, opt.dpi);
@@ -290,4 +290,16 @@ fn write_srt(path: &Option<PathBuf>, subtitles: &[(TimeSpan, String)]) -> Result
         }
     }
     Ok(())
+}
+
+// Dump images for subtitle pieces.
+// This can help for debug.
+fn dump_sub_pieces(idx: usize, pieces: &ImagePieces) -> Result<(), Error> {
+    pieces
+        .images()
+        .enumerate()
+        .try_for_each(|(line_idx, images)| {
+            let foldername = format!("dumpsplit_{idx}_{line_idx}");
+            dump_images(foldername.as_str(), images).map_err(Error::DumpImage)
+        })
 }
