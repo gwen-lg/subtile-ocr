@@ -13,6 +13,13 @@ pub enum Error {
     NoCharactersFound,
 }
 
+/// Define the behavior of asking char(s) for glyph to user.
+///TODO move
+pub trait GlyphCharAsker {
+    /// Method to ask the corresponding char(s) to a `Glyph`
+    fn ask_char_for_glyph(&self, piece: &Piece) -> String;
+}
+
 #[derive(Debug, Clone)]
 pub struct Piece {
     area: Area,
@@ -45,6 +52,10 @@ impl Piece {
 
     pub fn area(&self) -> Area {
         self.area
+    }
+
+    pub fn img(&self) -> &GrayImage {
+        self.img.as_ref().unwrap()
     }
 
     pub fn create_img(&mut self) {
@@ -127,19 +138,43 @@ impl ImagePieces {
     }
 
     /// Process to recognize text of the image
-    pub fn process_to_text(&self, glyph_lib: &mut GlyphLibrary) -> Result<String, Error> {
+    pub fn process_to_text(
+        &self,
+        glyph_lib: &mut GlyphLibrary,
+        asker: &impl GlyphCharAsker,
+    ) -> Result<String, Error> {
         // test to get character for glyph
         let mut text = String::new();
         self.lines.iter().for_each(|line| {
             line.pieces.iter().for_each(|piece| {
-                let piece_img = piece.img.as_ref().unwrap();
-                let character = glyph_lib.find(piece_img);
+                let character = glyph_lib.find(piece.img());
                 if let Some(character) = character {
                     text.push_str(character);
                 } else {
-                    println!("ask character");
-                    glyph_lib.add_glyph(Glyph::new(piece_img.clone(), None));
-                    todo!();
+                    let proximities = glyph_lib.find_closest(piece.img());
+                    let ok = if let Some((sum, closest_glyph)) = proximities.first() {
+                        let nb_pixels = piece.img().len();
+                        let proximity = *sum as f32 / nb_pixels as f32;
+                        if proximity >= 0.95 {
+                            if let Some(character) = closest_glyph.chars() {
+                                text.push_str(character);
+                                true
+                            } else {
+                                false
+                            }
+                        } else {
+                            false
+                        }
+                    } else {
+                        false
+                    };
+
+                    if !ok {
+                        let characters = asker.ask_char_for_glyph(piece);
+                        text.push_str(characters.as_str());
+                        glyph_lib.add_glyph(Glyph::new(piece.img().clone(), Some(characters)));
+                    }
+                    // TODO: handle space
                 }
             });
 

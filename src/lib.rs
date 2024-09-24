@@ -1,6 +1,7 @@
 #![doc = include_str!("../README.md")]
 
 mod glyph;
+mod glyph_asker_term;
 mod ocr;
 mod ocs;
 mod opt;
@@ -9,6 +10,7 @@ mod preprocessor;
 pub use crate::{ocr::OcrOpt, opt::Opt};
 
 use glyph::GlyphLibrary;
+use glyph_asker_term::GlyphAskerTerm;
 use image::{GrayImage, LumaA};
 use log::warn;
 use ocs::ImagePieces;
@@ -115,6 +117,8 @@ pub fn run(opt: &Opt, terminal: Terminal<impl Backend>) -> Result<(), Error> {
 
     let mut glyph_lib = GlyphLibrary::new();
 
+    let asker = GlyphAskerTerm::new(terminal);
+
     // test image split
     let test_img_iter = images.iter().skip(9).take(5); //TODO: remove
     dump_images("dump", test_img_iter.clone()).map_err(Error::DumpImage)?;
@@ -127,7 +131,7 @@ pub fn run(opt: &Opt, terminal: Terminal<impl Backend>) -> Result<(), Error> {
             dump_sub_pieces(idx, &pieces)?;
 
             pieces
-                .process_to_text(&mut glyph_lib)
+                .process_to_text(&mut glyph_lib, &asker)
                 .map_err(Error::OcsConvertToText)
         })
         .collect::<Vec<_>>();
