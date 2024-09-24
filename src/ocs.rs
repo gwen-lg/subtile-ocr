@@ -12,7 +12,7 @@ pub enum Error {
 }
 
 #[derive(Debug, Clone)]
-struct Piece {
+pub struct Piece {
     area: Area,
     // x: u32,
     // y: u32,
@@ -99,6 +99,10 @@ impl ImagePieces {
         self.lines
             .iter()
             .map(|(_, pieces)| pieces.iter().map(|piece| piece.img.as_ref().unwrap()))
+    }
+    /// return a ref on slice
+    pub fn pieces(&self) -> impl Iterator<Item = &(Area, Vec<Piece>)> {
+        self.lines.iter()
     }
 }
 

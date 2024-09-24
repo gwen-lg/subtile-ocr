@@ -145,106 +145,97 @@ pub fn run(opt: &Opt, mut terminal: Terminal<impl Backend>) -> Result<(), Error>
     // test image split
     let test_img_iter = images.iter().skip(15).take(2); // take(2)
     dump_images("dump", test_img_iter.clone()).map_err(Error::DumpImage)?;
-    test_img_iter
-        .into_iter()
-        .enumerate()
-        .try_for_each(|(idx, img)| {
-            let splitter = ocs::ImageCharacterSplitter::from_image(img);
-            let pieces = splitter.split_in_character_img().map_err(Error::OcsSplit)?;
-            let x = pieces
-                .images()
-                .enumerate()
-                .try_for_each(|(line_idx, images)| {
-                    let foldername = format!("dumpsplit_{idx}_{line_idx}");
-                    dump_images(foldername.as_str(), images).map_err(Error::DumpImage)
-                });
+    let texts = test_img_iter.into_iter().enumerate().map(|(idx, img)| {
+        let splitter = ocs::ImageCharacterSplitter::from_image(img);
+        let pieces = splitter.split_in_character_img().map_err(Error::OcsSplit)?;
+        let _ = pieces
+            .images()
+            .enumerate()
+            .try_for_each(|(line_idx, images)| {
+                let foldername = format!("dumpsplit_{idx}_{line_idx}");
+                dump_images(foldername.as_str(), images).map_err(Error::DumpImage)
+            })
+            .inspect_err(|err| {
+                log::warn!("Failed to dump sub img split pieces : {err}");
+            });
 
-            // test to get character for glyph
-            let mut text = String::new();
-            pieces.images().for_each(|line| {
-                line.for_each(|piece| {
-                    let character = glyph_lib.find(piece);
-                    if let Some(character) = character {
-                        text.push_str(character);
-                    } else {
-                        let proximities = glyph_lib.find_closest(piece);
-                        // proximities.iter().for_each(|(sum, glyph)| {
-                        //     let nb_pixels = piece.len();
-                        //     let proximity = *sum as f32 / nb_pixels as f32;
-                        //     println!(
-                        //         "{:?} : {}/{} => {}",
-                        //         glyph.chars(),
-                        //         sum,
-                        //         nb_pixels,
-                        //         proximity
-                        //     );
-                        // });
-                        let ok = if let Some((sum, closest_glyph)) = proximities.first() {
-                            let nb_pixels = piece.len();
-                            let proximity = *sum as f32 / nb_pixels as f32;
-                            if proximity >= 0.95 {
-                                if let Some(character) = closest_glyph.chars() {
-                                    text.push_str(character);
-                                    true
-                                } else {
-                                    false
-                                }
+        // test to get character for glyph
+        let mut text = String::new();
+        pieces.images().for_each(|line| {
+            line.for_each(|piece| {
+                let character = glyph_lib.find(piece);
+                if let Some(character) = character {
+                    text.push_str(character);
+                } else {
+                    let proximities = glyph_lib.find_closest(piece);
+                    // proximities.iter().for_each(|(sum, glyph)| {
+                    //     let nb_pixels = piece.len();
+                    //     let proximity = *sum as f32 / nb_pixels as f32;
+                    //     println!(
+                    //         "{:?} : {}/{} => {}",
+                    //         glyph.chars(),
+                    //         sum,
+                    //         nb_pixels,
+                    //         proximity
+                    //     );
+                    // });
+                    let ok = if let Some((sum, closest_glyph)) = proximities.first() {
+                        let nb_pixels = piece.len();
+                        let proximity = *sum as f32 / nb_pixels as f32;
+                        if proximity >= 0.95 {
+                            if let Some(character) = closest_glyph.chars() {
+                                text.push_str(character);
+                                true
                             } else {
                                 false
                             }
                         } else {
                             false
-                        };
+                        }
+                    } else {
+                        false
+                    };
 
-                        if !ok {
-                            terminal
-                                .draw(|frame| {
-                                    let inverted_img = GrayImage::from_fn(
-                                        piece.width(),
-                                        piece.height(),
-                                        |x, y| {
-                                            let mut pixel = *piece.get_pixel(x, y);
-                                            pixel.invert();
-                                            pixel
-                                        },
-                                    );
-                                    let mut piece_img = picker.new_resize_protocol(
-                                        DynamicImage::ImageLuma8(inverted_img),
-                                    );
-                                    //let msg = Paragraph::new("What is this glyph ?");
+                    if !ok {
+                        terminal
+                            .draw(|frame| {
+                                let inverted_img =
+                                    GrayImage::from_fn(piece.width(), piece.height(), |x, y| {
+                                        let mut pixel = *piece.get_pixel(x, y);
+                                        pixel.invert();
+                                        pixel
+                                    });
+                                let mut piece_img = picker
+                                    .new_resize_protocol(DynamicImage::ImageLuma8(inverted_img));
+                                //let msg = Paragraph::new("What is this glyph ?");
 
-                                    let image = StatefulImage::new(None);
-                                    frame.render_stateful_widget(
-                                        image,
-                                        frame.area(),
-                                        &mut piece_img,
-                                    );
-                                    //frame.render_widget(msg, frame.area());
-                                })
-                                .unwrap();
-                            loop {
-                                if let event::Event::Key(key) = event::read().unwrap() {
-                                    if key.kind == KeyEventKind::Press {
-                                        if let KeyCode::Char(char) = key.code {
-                                            let characters = String::from(char);
-                                            text.push_str(characters.as_str());
-                                            glyph_lib.add_glyph(Glyph::new(
-                                                piece.clone(),
-                                                Some(characters),
-                                            ));
-                                            break;
-                                        }
+                                let image = StatefulImage::new(None);
+                                frame.render_stateful_widget(image, frame.area(), &mut piece_img);
+                                //frame.render_widget(msg, frame.area());
+                            })
+                            .unwrap();
+                        loop {
+                            if let event::Event::Key(key) = event::read().unwrap() {
+                                if key.kind == KeyEventKind::Press {
+                                    if let KeyCode::Char(char) = key.code {
+                                        let characters = String::from(char);
+                                        text.push_str(characters.as_str());
+                                        glyph_lib
+                                            .add_glyph(Glyph::new(piece.clone(), Some(characters)));
+                                        break;
                                     }
                                 }
                             }
                         }
                     }
-                });
-                text.push('\n');
+                    // TODO: handle space
+                }
             });
+            text.push('\n');
+        });
 
-            x //TODO: remove
-        })?;
+        Ok::<_, Error>(text)
+    });
 
     // TODO: move file management in glyph lib
     glyph_lib
