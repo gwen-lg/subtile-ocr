@@ -168,6 +168,11 @@ pub fn run(opt: &Opt, terminal: Terminal<impl Backend>) -> Result<(), Error> {
         })
         .collect::<Vec<_>>();
 
+    // Ask to save library in path
+    glyph_lib
+        .save_to_path(app_path)
+        .map_err(Error::GlyphLibrarySave)?;
+
     //let ocr_opt = OcrOpt::new(&opt.tessdata_dir, opt.lang.as_str(), &opt.config, opt.dpi);
     //let texts = ocr::process(images, &ocr_opt)?;
     let subtitles = check_subtitles(times.into_iter().zip(texts))?;

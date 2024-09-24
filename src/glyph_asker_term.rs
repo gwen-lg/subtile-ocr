@@ -17,9 +17,9 @@ impl<B> GlyphAskerTerm<B>
 where
     B: Backend,
 {
-    pub fn new(terminal: Terminal<B>, piker: Picker) -> Self {
+    pub fn new(terminal: Terminal<B>, picker: Picker) -> Self {
         Self {
-            terminal: (terminal, piker).into(),
+            terminal: (terminal, picker).into(),
         }
     }
 }
@@ -35,12 +35,13 @@ where
         let (ref mut terminal, ref mut picker) = self_mut.deref_mut();
         terminal
             .draw(|frame| {
-                let piece = piece.img();
-                let inverted_img = GrayImage::from_fn(piece.width(), piece.height(), |x, y| {
-                    let mut pixel = *piece.get_pixel(x, y);
-                    pixel.invert();
-                    pixel
-                });
+                let piece_img = piece.img();
+                let inverted_img =
+                    GrayImage::from_fn(piece_img.width(), piece_img.height(), |x, y| {
+                        let mut pixel = *piece_img.get_pixel(x, y);
+                        pixel.invert();
+                        pixel
+                    });
                 let mut piece_img =
                     picker.new_resize_protocol(DynamicImage::ImageLuma8(inverted_img));
                 //let msg = Paragraph::new("What is this glyph ?");
