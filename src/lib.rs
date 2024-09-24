@@ -158,7 +158,9 @@ pub fn run(opt: &Opt, terminal: Terminal<impl Backend>) -> Result<(), Error> {
         .map(|(idx, img)| {
             let splitter = ocs::ImageCharacterSplitter::from_image(img);
             let pieces = splitter.split_in_character_img().map_err(Error::OcsSplit)?;
-            dump_sub_pieces(idx, &pieces)?;
+            let _ = dump_sub_pieces(idx, &pieces).inspect_err(|err| {
+                log::warn!("Failed to dump sub img split pieces : {err}");
+            });
 
             pieces
                 .process_to_text(&mut glyph_lib, &asker)
