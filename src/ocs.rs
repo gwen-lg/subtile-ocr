@@ -88,9 +88,52 @@ impl Piece {
     }
 }
 
+/// Line of pieces
+pub struct Line {
+    area: Area,
+    pieces: Vec<Piece>,
+}
+
+impl Line {
+    pub fn from_piece(piece: Piece) -> Self {
+        Self {
+            area: piece.area(),
+            pieces: vec![piece],
+        }
+    }
+    pub fn extend_with_piece(&mut self, piece: Piece) {
+        self.area.extend(piece.area());
+        self.pieces.push(piece);
+    }
+    pub fn sort_pieces(&mut self) {
+        self.pieces.sort_by_key(|piece| piece.area().left());
+    }
+    pub fn group_accent(&mut self) {
+        //TODO: don't manage correctly all case, example with 'ï'
+        let mut new_pieces: Vec<Piece> = Vec::new();
+        self.pieces.drain(0..self.pieces.len()).for_each(|piece| {
+            if let Some(last_piece) = new_pieces.last_mut() {
+                if last_piece.area().intersect_x(piece.area()) {
+                    last_piece.extend(piece);
+                } else {
+                    new_pieces.push(piece);
+                }
+            } else {
+                new_pieces.push(piece);
+            }
+        });
+
+        self.pieces = new_pieces;
+    }
+
+    pub fn pieces(&mut self) -> impl Iterator<Item = &mut Piece> {
+        self.pieces.iter_mut()
+    }
+}
+
 /// Result of a split
 pub struct ImagePieces {
-    lines: Vec<(Area, Vec<Piece>)>,
+    lines: Vec<Line>,
 }
 
 impl ImagePieces {
@@ -98,10 +141,10 @@ impl ImagePieces {
     pub fn images(&self) -> impl Iterator<Item = impl Iterator<Item = &GrayImage>> {
         self.lines
             .iter()
-            .map(|(_, pieces)| pieces.iter().map(|piece| piece.img.as_ref().unwrap()))
+            .map(|line| line.pieces.iter().map(|piece| piece.img.as_ref().unwrap()))
     }
     /// return a ref on slice
-    pub fn pieces(&self) -> impl Iterator<Item = &(Area, Vec<Piece>)> {
+    pub fn pieces(&self) -> impl Iterator<Item = &Line> {
         self.lines.iter()
     }
 }
@@ -145,46 +188,28 @@ impl ImageCharacterSplitter {
             return Err(Error::NoCharactersFound);
         }
 
-        let mut lines: Vec<(Area, Vec<Piece>)> = Vec::new();
-        pieces.iter().for_each(|piece| {
-            if let Some((line, pieces)) = lines
+        let mut lines: Vec<Line> = Vec::new();
+        pieces.drain(..).for_each(|piece| {
+            if let Some(line) = lines
                 .iter_mut()
-                .find(|(line, _)| line.intersect_y(piece.area()))
+                .find(|Line { area, .. }| area.intersect_y(piece.area()))
             {
-                line.extend(piece.area());
-                pieces.push((*piece).clone());
+                line.extend_with_piece(piece);
             } else {
-                let new_line = piece.area();
-                lines.push((new_line, vec![(*piece).clone()]));
+                lines.push(Line::from_piece(piece));
             }
         });
         //TODO: manage line with only accents
 
         // sort pieces in lines by left coordinate. Need to be configurable to manage languages with right to left order.
-        lines
-            .iter_mut()
-            .for_each(|(_, pieces)| pieces.sort_by_key(|piece| piece.area().left()));
+        lines.iter_mut().for_each(|line| line.sort_pieces());
+
         // group accent piece with base glyph
-        lines.iter_mut().for_each(|(_, pieces)| {
-            let mut new_pieces: Vec<Piece> = Vec::new();
-            pieces.drain(0..pieces.len()).for_each(|piece| {
-                if let Some(last_piece) = new_pieces.last_mut() {
-                    if last_piece.area().intersect_x(piece.area()) {
-                        last_piece.extend(piece);
-                    } else {
-                        new_pieces.push(piece);
-                    }
-                } else {
-                    new_pieces.push(piece);
-                }
-            });
-
-            *pieces = new_pieces;
-        });
+        lines.iter_mut().for_each(|line| line.group_accent());
 
         lines
             .iter_mut()
-            .for_each(|(_, pieces)| pieces.iter_mut().for_each(|piece| piece.create_img()));
+            .for_each(|line| line.pieces().for_each(|piece| piece.create_img()));
 
         Ok(ImagePieces { lines })
     }
