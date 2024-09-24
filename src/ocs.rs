@@ -188,6 +188,7 @@ impl ImagePieces {
                     // TODO: handle space
                 }
             });
+            text.push('\n');
         });
 
         Ok::<_, Error>(text)
