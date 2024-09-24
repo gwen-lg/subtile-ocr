@@ -21,7 +21,7 @@ use rayon::{
 };
 use std::{
     ffi::OsStr,
-    fs::{self, File},
+    fs::File,
     io::{self, BufReader, BufWriter},
     path::PathBuf,
 };
@@ -81,9 +81,6 @@ pub enum Error {
     #[error("Failed to init picker from term : {0}")]
     Picker(String),
 
-    #[error("Failed to open Glyphs Library file to write it")]
-    GlyphsLibraryOpenFile(#[source] io::Error),
-
     #[error("Failed to save Glyphs Library")]
     GlyphLibrarySave(#[source] glyph::Error),
 }
@@ -130,22 +127,18 @@ pub fn run(opt: &Opt, mut terminal: Terminal<impl Backend>) -> Result<(), Error>
     app_path.push(".local/share");
     app_path.push(APP_NAME);
 
-    let mut glyph_library_filename = app_path.clone();
-    glyph_library_filename.push("glyph_library.ron");
-
     let mut glyph_lib = GlyphLibrary::new();
-    match File::open(glyph_library_filename.as_path()) {
-        Ok(file) => {
-            let reader = BufReader::new(file);
-            if let Err(err) = glyph_lib.load(reader) {
-                log::error!("Failed to load glyph library : {err}");
+    if let Err(err) = glyph_lib.load_from_path(app_path.clone()) {
+        match err {
+            glyph::Error::NoFileToLoad(_) => {
+                log::info!("There is no Glyph Library to load.");
             }
-        }
-        Err(err) if err.kind() == io::ErrorKind::NotFound => {
-            log::info!("There is no Glyph Library to load.");
-        }
-        Err(err) => {
-            log::warn!("Failed to open Glyph Library : {err}");
+            glyph::Error::FailedToLoadFile(err) => {
+                log::warn!("Failed to load Glyph Library from file : {err}");
+            }
+            _ => {
+                log::error!("error not managed : {err}");
+            }
         }
     }
 
@@ -254,10 +247,9 @@ pub fn run(opt: &Opt, mut terminal: Terminal<impl Backend>) -> Result<(), Error>
         })?;
 
     // TODO: move file management in glyph lib
-    fs::create_dir_all(app_path.as_path()).map_err(Error::GlyphsLibraryOpenFile)?;
-    let file = File::create(glyph_library_filename).map_err(Error::GlyphsLibraryOpenFile)?;
-    let writer = BufWriter::new(file);
-    glyph_lib.save(writer).map_err(Error::GlyphLibrarySave)?;
+    glyph_lib
+        .save_to_path(app_path)
+        .map_err(Error::GlyphLibrarySave)?;
 
     let ocr_opt = OcrOpt::new(&opt.tessdata_dir, opt.lang.as_str(), &opt.config, opt.dpi);
     let texts = ocr::process(images, &ocr_opt)?;

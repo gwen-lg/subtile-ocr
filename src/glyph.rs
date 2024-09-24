@@ -4,7 +4,9 @@ use ron::ser::PrettyConfig;
 use serde::{de::Visitor, ser::SerializeSeq, Deserialize, Serialize};
 use std::{
     fmt,
-    io::{Read, Write},
+    fs::{self, File},
+    io::{self, BufReader, BufWriter, Read, Write},
+    path::PathBuf,
 };
 use thiserror::Error;
 
@@ -16,6 +18,18 @@ pub enum Error {
 
     #[error("Failed to deserialize a Glyph with ron format")]
     GlyphRonDeserialization(#[source] ron::de::SpannedError),
+
+    #[error("There is no Glyph Library to load.")]
+    NoFileToLoad(#[source] io::Error),
+
+    #[error("Failed to load Glyph Library")]
+    FailedToLoadFile(#[source] io::Error),
+
+    #[error("Failed to create directory for save Glyphs Library")]
+    GlyphsLibraryCreateDirectory(#[source] io::Error),
+
+    #[error("Failed to open Glyphs Library file to write it")]
+    GlyphsLibraryOpenFile(#[source] io::Error),
 }
 
 /// Struct wrapper for `GlyphImage`
@@ -151,6 +165,8 @@ pub struct GlyphLibrary {
     glyphs: Vec<Glyph>,
 }
 
+const LIBRARY_FILENAME: &str = "glyph_library.ron";
+
 impl GlyphLibrary {
     pub fn new() -> Self {
         Self { glyphs: Vec::new() }
@@ -202,9 +218,36 @@ impl GlyphLibrary {
     }
 
     /// TODO
+    pub fn load_from_path(&mut self, path: impl Into<PathBuf>) -> Result<(), Error> {
+        let mut glyph_library_filename = path.into();
+        glyph_library_filename.push(LIBRARY_FILENAME);
+        let file = File::open(glyph_library_filename).map_err(|source| {
+            if source.kind() == io::ErrorKind::NotFound {
+                Error::NoFileToLoad(source)
+            } else {
+                Error::FailedToLoadFile(source)
+            }
+        })?;
+        let reader = BufReader::new(file);
+        self.load(reader)
+    }
+
+    /// TODO
     pub fn load(&mut self, reader: impl Read) -> Result<(), Error> {
         self.glyphs = ron::de::from_reader(reader).map_err(Error::GlyphRonDeserialization)?;
         Ok(())
+    }
+
+    /// TODO
+    pub fn save_to_path(&self, path: impl Into<PathBuf>) -> Result<(), Error> {
+        let path = path.into();
+        fs::create_dir_all(path.as_path()).map_err(Error::GlyphsLibraryCreateDirectory)?;
+
+        let mut glyph_library_filename = path;
+        glyph_library_filename.push(LIBRARY_FILENAME);
+        let file = File::create(glyph_library_filename).map_err(Error::GlyphsLibraryOpenFile)?;
+        let writer = BufWriter::new(file);
+        self.save(writer)
     }
 
     /// TODO
