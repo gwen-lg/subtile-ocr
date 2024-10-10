@@ -3,7 +3,7 @@ use image::{GrayImage, Luma};
 use ron::ser::PrettyConfig;
 use serde::{
     de::{self, Visitor},
-    ser::{self, SerializeSeq},
+    ser::{self, SerializeSeq, SerializeStruct},
     Deserialize, Serialize,
 };
 use std::{
@@ -82,13 +82,16 @@ impl Serialize for GlyphImage {
             })?;
             seq.end()
         } else {
-            //TODO: serialize glyph size
+            let mut state = serializer.serialize_struct("GlyphImage", 3)?;
+            state.serialize_field("s", &self.0.dimensions())?;
             let pixels = self.0.enumerate_pixels();
+            //TODO: compact even more pixels with pack 8 pixels in a char
             let pixel_str = pixels
                 .map(Self::pix_to_char)
                 .collect::<Result<String, _>>()
                 .map_err(ser::Error::custom)?;
-            serializer.serialize_str(pixel_str.as_str())
+            state.serialize_field("p", pixel_str.as_str())?;
+            state.end()
         }
     }
 }
@@ -133,8 +136,49 @@ impl<'de> Deserialize<'de> for GlyphImage {
     where
         D: serde::Deserializer<'de>,
     {
-        assert!(deserializer.is_human_readable()); //TODO: handle no human readable
-        deserializer.deserialize_seq(GlyphImageHumanVisitor)
+        if deserializer.is_human_readable() {
+            deserializer.deserialize_seq(GlyphImageHumanVisitor)
+        } else {
+            #[derive(Deserialize)]
+            #[serde(field_identifier, rename_all = "lowercase")]
+            enum Field {
+                S, // Size
+                P, // Pixels
+            }
+
+            struct GlyphImageVisitor;
+            impl<'de> Visitor<'de> for GlyphImageVisitor {
+                type Value = GlyphImage;
+
+                fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                    formatter.write_str("struct GlyphImage")
+                }
+
+                fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+                where
+                    A: de::SeqAccess<'de>,
+                {
+                    let (width, height): (u32, u32) = seq
+                        .next_element()?
+                        .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                    let pixels_str: String = seq
+                        .next_element()?
+                        .ok_or_else(|| de::Error::invalid_length(1, &self))?;
+                    //TODO: compact even more pixels with pack 8 pixels in a char
+                    let pixels = pixels_str
+                        .chars()
+                        .map(GlyphImage::char_to_pix)
+                        .collect::<Result<Vec<_>, _>>()
+                        .map_err(de::Error::custom)?;
+                    let img = GrayImage::from_vec(width, height, pixels)
+                        .ok_or_else(|| de::Error::custom("Failed to create Image for Glyph"))?;
+                    Ok(GlyphImage(img))
+                }
+            }
+
+            const FIELDS: &[&str] = &["s", "p"];
+            deserializer.deserialize_struct("GlyphImage", FIELDS, GlyphImageVisitor)
+        }
     }
 }
 
