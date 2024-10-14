@@ -1,3 +1,4 @@
+use compact_str::CompactString;
 use derive_more::derive::AsRef;
 use image::{GrayImage, Luma};
 use ron::ser::PrettyConfig;
@@ -84,7 +85,7 @@ impl Serialize for GlyphImage {
             rows.try_for_each(|(_idx, pixels)| {
                 let pixel_str = pixels
                     .map(Self::pix_to_char)
-                    .collect::<Result<String, _>>()
+                    .collect::<Result<CompactString, _>>()
                     .map_err(ser::Error::custom)?;
 
                 seq.serialize_element(pixel_str.as_str())
@@ -97,7 +98,7 @@ impl Serialize for GlyphImage {
             //TODO: compact even more pixels with pack 8 pixels in a char
             let pixel_str = pixels
                 .map(Self::pix_to_char)
-                .collect::<Result<String, _>>()
+                .collect::<Result<CompactString, _>>()
                 .map_err(ser::Error::custom)?;
             state.serialize_field("p", pixel_str.as_str())?;
             state.end()
@@ -115,7 +116,7 @@ impl<'de> Visitor<'de> for GlyphImageHumanVisitor {
     where
         A: serde::de::SeqAccess<'de>,
     {
-        let mut rows: Vec<String> = Vec::new();
+        let mut rows: Vec<CompactString> = Vec::with_capacity(16);
         while let Some(elem) = seq.next_element()? {
             rows.push(elem);
         }
@@ -195,18 +196,18 @@ impl<'de> Deserialize<'de> for GlyphImage {
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Glyph {
     img: GlyphImage,
-    characters: Option<String>,
+    characters: Option<CompactString>,
 }
 
 impl Glyph {
-    pub fn new(img: GrayImage, characters: Option<String>) -> Self {
+    pub fn new(img: GrayImage, characters: Option<CompactString>) -> Self {
         Self {
             img: img.into(),
             characters,
         }
     }
 
-    pub fn chars(&self) -> Option<&String> {
+    pub fn chars(&self) -> Option<&CompactString> {
         self.characters.as_ref()
     }
 }

@@ -404,6 +404,7 @@ dependencies = [
  "itoa",
  "rustversion",
  "ryu",
+ "serde",
  "static_assertions",
 ]
 
@@ -1620,6 +1621,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "clap",
+ "compact_str",
  "crossterm",
  "derive_more",
  "image",
