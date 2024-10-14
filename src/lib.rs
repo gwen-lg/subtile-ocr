@@ -9,6 +9,7 @@ mod preprocessor;
 
 pub use crate::{ocr::OcrOpt, opt::Opt};
 
+use compact_str::CompactString;
 use glyph::GlyphLibrary;
 use glyph_asker_term::GlyphAskerTerm;
 use image::{GrayImage, LumaA};
@@ -45,7 +46,7 @@ pub enum Error {
     RayonThreadPool(#[from] ThreadPoolBuildError),
 
     #[error("The file extension '{extension}' is not managed.")]
-    InvalidFileExtension { extension: String },
+    InvalidFileExtension { extension: CompactString },
 
     #[error("The file doesn't have a valid extension, can't choose a parser.")]
     NoFileExtension,
