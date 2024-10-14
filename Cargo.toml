@@ -16,6 +16,7 @@ homepage = "https://github.com/gwen-lg/subtile-ocr"
 anyhow = "1.0"
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 clap = { version = "4.4", features = ["cargo", "derive"] }
+compact_str = { version = "0.8", features = ["serde"] }
 crossterm = "0.28"
 derive_more = { version = "1.0", features = ["as_ref"] }
 image = { version = "0.25", default-features = false, features = [

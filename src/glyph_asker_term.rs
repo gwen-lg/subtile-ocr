@@ -1,11 +1,12 @@
 use crate::ocs::{GlyphCharAsker, Piece};
+use compact_str::{CompactString, ToCompactString};
 use crossterm::event::{self, KeyCode, KeyEventKind};
 use image::{DynamicImage, GrayImage, Pixel};
 use ratatui::{prelude::Backend, Terminal};
 use ratatui_image::{picker::Picker, StatefulImage};
 use std::{cell::RefCell, ops::DerefMut};
 
-/// TODO
+/// Implementation of `GlyphCharAsker` through a terminal ui.
 pub struct GlyphAskerTerm<B>
 where
     B: Backend,
@@ -28,9 +29,8 @@ impl<B> GlyphCharAsker for GlyphAskerTerm<B>
 where
     B: Backend,
 {
-    /// Note: return String because it can be multiple chars in some case
-    /// TODO: use an Array string
-    fn ask_char_for_glyph(&self, piece: &Piece) -> String {
+    /// Note: return a `CompactString` because it can be multiple chars in some case
+    fn ask_char_for_glyph(&self, piece: &Piece) -> CompactString {
         let mut self_mut = self.terminal.borrow_mut();
         let (ref mut terminal, ref mut picker) = self_mut.deref_mut();
         terminal
@@ -55,7 +55,7 @@ where
             if let event::Event::Key(key) = event::read().unwrap() {
                 if key.kind == KeyEventKind::Press {
                     if let KeyCode::Char(char) = key.code {
-                        let characters = String::from(char);
+                        let characters = char.to_compact_string();
                         return characters;
                     }
                 }

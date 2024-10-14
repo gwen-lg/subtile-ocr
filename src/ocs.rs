@@ -1,3 +1,4 @@
+use compact_str::CompactString;
 use image::{GrayImage, Luma};
 use std::fmt::Write;
 use subtile::content::{Area, AreaValues};
@@ -18,7 +19,7 @@ pub enum Error {
 ///TODO move
 pub trait GlyphCharAsker {
     /// Method to ask the corresponding char(s) to a `Glyph`
-    fn ask_char_for_glyph(&self, piece: &Piece) -> String;
+    fn ask_char_for_glyph(&self, piece: &Piece) -> CompactString;
 }
 
 #[derive(Debug, Clone)]
