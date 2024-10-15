@@ -110,6 +110,7 @@ pub fn run(opt: &Opt, terminal: Terminal<impl Backend>) -> Result<(), Error> {
         .build_global()
         .map_err(Error::RayonThreadPool)?;
 
+    //TODO: do not add border for `OCS` vs `OCR`
     let (times, images) = match opt.input.extension().and_then(OsStr::to_str) {
         Some(ext) => match ext {
             "sup" => process_pgs(opt),
