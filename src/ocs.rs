@@ -91,6 +91,8 @@ impl Piece {
 pub struct Line {
     area: Area,
     pieces: Vec<Piece>,
+    // (top, bottom)
+    base_y: Option<(u16, u16)>,
 }
 
 impl Line {
@@ -98,6 +100,7 @@ impl Line {
         Self {
             area: piece.area(),
             pieces: vec![piece],
+            base_y: None,
         }
     }
     pub fn extend_with_piece(&mut self, piece: Piece) {
@@ -124,6 +127,26 @@ impl Line {
 
         self.pieces = new_pieces;
     }
+    pub fn establish_x_base(&mut self) {
+        let line_height = self.area.height() / 2;
+        let base_bottom_y = self
+            .pieces
+            .iter()
+            .filter(|piece| piece.area().height() >= line_height) // try to avoid char "'"
+            .map(|piece| piece.area().bottom())
+            .reduce(u16::min)
+            .unwrap();
+        assert!(self.area.contain_point_y(base_bottom_y));
+        let base_top_y = self
+            .pieces
+            .iter()
+            .filter(|piece| piece.area().height() >= line_height) // try to avoid char "'"
+            .map(|piece| piece.area().top())
+            .reduce(u16::max)
+            .unwrap();
+        assert!(self.area.contain_point_y(base_top_y));
+        self.base_y = Some((base_top_y, base_bottom_y));
+    }
 }
 
 /// Result of a split
@@ -148,6 +171,7 @@ impl ImagePieces {
         // test to get character for glyph
         let mut text = String::new();
         self.lines.iter().for_each(|line| {
+            let line_base_y = line.base_y.unwrap();
             line.pieces.iter().for_each(|piece| {
                 let character = glyph_lib.find(piece.img());
                 if let Some(character) = character {
@@ -180,7 +204,15 @@ impl ImagePieces {
                     if !ok {
                         let characters = asker.ask_char_for_glyph(piece);
                         text.push_str(characters.as_str());
-                        glyph_lib.add_glyph(Glyph::new(piece.img().clone(), Some(characters)));
+                        let orig_y = (
+                            piece.area().top() as i16 - line_base_y.0 as i16,
+                            piece.area().bottom() as i16 - line_base_y.1 as i16,
+                        );
+                        glyph_lib.add_glyph(Glyph::new(
+                            piece.img().clone(),
+                            orig_y,
+                            Some(characters),
+                        ));
                     }
                     // TODO: handle space
                 }
@@ -241,6 +273,9 @@ impl ImageCharacterSplitter {
 
         // group accent piece with base glyph
         lines.iter_mut().for_each(|line| line.group_accent());
+
+        // establish the base
+        lines.iter_mut().for_each(|line| line.establish_x_base());
 
         lines
             .iter_mut()

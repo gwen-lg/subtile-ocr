@@ -196,13 +196,16 @@ impl<'de> Deserialize<'de> for GlyphImage {
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Glyph {
     img: GlyphImage,
+    // reference to the origin on y Axis of the character (top, bottom)
+    orig_y: (i16, i16),
     characters: Option<CompactString>,
 }
 
 impl Glyph {
-    pub fn new(img: GrayImage, characters: Option<CompactString>) -> Self {
+    pub fn new(img: GrayImage, orig_y: (i16, i16), characters: Option<CompactString>) -> Self {
         Self {
             img: img.into(),
+            orig_y,
             characters,
         }
     }
