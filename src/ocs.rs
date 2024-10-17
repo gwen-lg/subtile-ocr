@@ -27,7 +27,7 @@ pub enum GlyphResult {
 ///TODO move
 pub trait GlyphCharAsker {
     /// Method to ask the corresponding char(s) to a `Glyph`
-    fn ask_char_for_glyph(&self, piece: &Piece) -> GlyphResult;
+    fn ask_char_for_glyph(&self, img: &GrayImage, piece: &Piece) -> GlyphResult;
 }
 
 #[derive(Debug, Clone)]
@@ -182,6 +182,7 @@ impl Line {
 /// Result of a split
 pub struct ImagePieces {
     lines: Vec<Line>,
+    img: GrayImage,
 }
 
 impl ImagePieces {
@@ -240,7 +241,7 @@ impl ImagePieces {
                         };
 
                         if !ok {
-                            let glyph_res = asker.ask_char_for_glyph(piece);
+                            let glyph_res = asker.ask_char_for_glyph(&self.img, piece);
                             match glyph_res {
                                 GlyphResult::Abort => {
                                     return Err(Error::StopGlyphProcess);
@@ -289,6 +290,7 @@ impl ImageCharacterSplitter {
 
     /// Split image into a list of character image
     pub fn split_in_character_img(self) -> Result<ImagePieces, Error> {
+        let bak_img = self.img.clone();
         let mut image = self.img;
 
         let mut pieces = vec![];
@@ -335,11 +337,17 @@ impl ImageCharacterSplitter {
         // establish the base
         lines.iter_mut().for_each(|line| line.establish_x_base());
 
+        // Compute space between piece
+        lines.iter_mut().for_each(|line| line.compute_space());
+
         lines
             .iter_mut()
             .for_each(|line| line.pieces.iter_mut().for_each(|piece| piece.create_img()));
 
-        Ok(ImagePieces { lines })
+        Ok(ImagePieces {
+            lines,
+            img: bak_img,
+        })
     }
 }
 
