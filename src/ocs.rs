@@ -100,6 +100,7 @@ impl Piece {
 pub struct Line {
     area: Area,
     pieces: Vec<Piece>,
+    spaces: Vec<bool>,
     // (top, bottom)
     base_y: Option<(u16, u16)>,
 }
@@ -109,6 +110,7 @@ impl Line {
         Self {
             area: piece.area(),
             pieces: vec![piece],
+            spaces: Vec::new(),
             base_y: None,
         }
     }
@@ -156,6 +158,26 @@ impl Line {
         assert!(self.area.contain_point_y(base_top_y));
         self.base_y = Some((base_top_y, base_bottom_y));
     }
+
+    pub fn compute_space(&mut self) {
+        assert!(self.spaces.is_empty());
+        //let base = self.base_y.unwrap();
+        let spaces = self
+            .pieces
+            .iter()
+            .enumerate()
+            .map(|(idx, piece)| {
+                if let Some(next_piece) = self.pieces.get(idx + 1) {
+                    let space = next_piece.area.left() - piece.area.right();
+                    // TODO: too simple algo, dont work with other font size, and italic
+                    space > 9
+                } else {
+                    false
+                }
+            })
+            .collect::<Vec<_>>();
+        self.spaces = spaces;
+    }
 }
 
 /// Result of a split
@@ -181,59 +203,65 @@ impl ImagePieces {
         let mut text = String::new();
         self.lines.iter().try_for_each(|line| {
             let line_base_y = line.base_y.unwrap();
-            line.pieces.iter().try_for_each(|piece| {
-                let character = glyph_lib.find(piece.img());
-                if let Some(character) = character {
-                    text.push_str(character);
-                } else {
-                    let proximities = glyph_lib.find_closest(piece.img());
-                    if log::log_enabled!(log::Level::Debug) {
-                        match dump_pieces_proximities(&proximities, piece) {
-                            Ok(dump) => log::debug!("{dump}"),
-                            Err(err) => log::debug!("Failed to dump proximities info : {err}"),
-                        };
-                    }
-                    let ok = if let Some((sum, closest_glyph)) = proximities.first() {
-                        let nb_pixels = piece.img().len();
-                        let proximity = *sum as f32 / nb_pixels as f32;
-                        if proximity >= 0.95 {
-                            if let Some(character) = closest_glyph.chars() {
-                                text.push_str(character);
-                                true
+            line.pieces
+                .iter()
+                .zip(line.spaces.iter())
+                .try_for_each(|(piece, &space_after)| {
+                    let character = glyph_lib.find(piece.img());
+                    if let Some(character) = character {
+                        text.push_str(character);
+                    } else {
+                        let proximities = glyph_lib.find_closest(piece.img());
+                        if log::log_enabled!(log::Level::Debug) {
+                            match dump_pieces_proximities(&proximities, piece) {
+                                Ok(dump) => log::debug!("{dump}"),
+                                Err(err) => log::debug!("Failed to dump proximities info : {err}"),
+                            };
+                        }
+                        let ok = if let Some((sum, closest_glyph)) = proximities.first() {
+                            let nb_pixels = piece.img().len();
+                            let proximity = *sum as f32 / nb_pixels as f32;
+                            if proximity >= 0.95 {
+                                if let Some(character) = closest_glyph.chars() {
+                                    text.push_str(character);
+                                    true
+                                } else {
+                                    false
+                                }
                             } else {
                                 false
                             }
                         } else {
                             false
-                        }
-                    } else {
-                        false
-                    };
+                        };
 
-                    if !ok {
-                        let glyph_res = asker.ask_char_for_glyph(piece);
-                        match glyph_res {
-                            GlyphResult::Abort => {
-                                return Err(Error::StopGlyphProcess);
-                            }
-                            GlyphResult::Char(characters) => {
-                                text.push_str(characters.as_str());
-                                let orig_y = (
-                                    piece.area().top() as i16 - line_base_y.0 as i16,
-                                    piece.area().bottom() as i16 - line_base_y.1 as i16,
-                                );
-                                glyph_lib.add_glyph(Glyph::new(
-                                    piece.img().clone(),
-                                    orig_y,
-                                    Some(characters),
-                                ));
+                        if !ok {
+                            let glyph_res = asker.ask_char_for_glyph(piece);
+                            match glyph_res {
+                                GlyphResult::Abort => {
+                                    return Err(Error::StopGlyphProcess);
+                                }
+                                GlyphResult::Char(characters) => {
+                                    text.push_str(characters.as_str());
+                                    let orig_y = (
+                                        piece.area().top() as i16 - line_base_y.0 as i16,
+                                        piece.area().bottom() as i16 - line_base_y.1 as i16,
+                                    );
+                                    glyph_lib.add_glyph(Glyph::new(
+                                        piece.img().clone(),
+                                        orig_y,
+                                        Some(characters),
+                                    ));
+                                }
                             }
                         }
                     }
-                    // TODO: handle space
-                }
-                Ok(())
-            })?;
+                    // Handle space between glyphs/characters.
+                    if space_after {
+                        text.push(' ');
+                    }
+                    Ok(())
+                })?;
 
             // Add `eol` to text
             text.push('\n');
@@ -295,6 +323,9 @@ impl ImageCharacterSplitter {
 
         // establish the base
         lines.iter_mut().for_each(|line| line.establish_x_base());
+
+        // Compute space between piece
+        lines.iter_mut().for_each(|line| line.compute_space());
 
         lines
             .iter_mut()
