@@ -203,6 +203,7 @@ impl ImagePieces {
         // test to get character for glyph
         let mut text = String::new();
         self.lines.iter().try_for_each(|line| {
+            assert!(line.pieces.len() == line.spaces.len());
             let line_base_y = line.base_y.unwrap();
             line.pieces
                 .iter()
