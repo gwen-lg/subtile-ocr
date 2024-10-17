@@ -9,7 +9,7 @@ use anyhow::Context;
 use clap::Parser;
 use crossterm::{
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen},
 };
 use log::LevelFilter;
 use ratatui::{
@@ -58,12 +58,12 @@ fn init_panic_hook() {
     }));
 }
 fn init_tui() -> io::Result<Terminal<impl Backend>> {
-    enable_raw_mode()?;
+    //enable_raw_mode()?;
     execute!(stdout(), EnterAlternateScreen)?;
     Terminal::new(CrosstermBackend::new(stdout()))
 }
 fn restore_tui() -> io::Result<()> {
-    disable_raw_mode()?;
+    //disable_raw_mode()?;
     execute!(stdout(), LeaveAlternateScreen)?;
     Ok(())
 }

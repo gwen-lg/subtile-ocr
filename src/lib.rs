@@ -102,7 +102,7 @@ pub enum Error {
 /// Will forward error from `ocr` processing and [`check_subtitles`] if any.
 #[profiling::function]
 pub fn run(opt: &Opt, terminal: Terminal<impl Backend>) -> Result<(), Error> {
-    let mut picker = Picker::new((2, 3)); // (16, 24) Picker::from_termios().map_err(|source| Error::Picker(source.to_string()))?;
+    let mut picker = Picker::from_termios().unwrap_or_else(|_| Picker::new((2, 3))); // (16, 24) .map_err(|source| Error::Picker(source.to_string()))?;
     picker.guess_protocol();
 
     rayon::ThreadPoolBuilder::new()
