@@ -13,13 +13,22 @@ pub enum Error {
 
     #[error("No character found")]
     NoCharactersFound,
+
+    #[error("Stop Glyph processing")]
+    StopGlyphProcess,
+}
+
+/// Manage Result of `Glyph` asking
+pub enum GlyphResult {
+    Abort,
+    Char(CompactString),
 }
 
 /// Define the behavior of asking char(s) for glyph to user.
 ///TODO move
 pub trait GlyphCharAsker {
     /// Method to ask the corresponding char(s) to a `Glyph`
-    fn ask_char_for_glyph(&self, piece: &Piece) -> CompactString;
+    fn ask_char_for_glyph(&self, piece: &Piece) -> GlyphResult;
 }
 
 #[derive(Debug, Clone)]
@@ -170,9 +179,9 @@ impl ImagePieces {
     ) -> Result<String, Error> {
         // test to get character for glyph
         let mut text = String::new();
-        self.lines.iter().for_each(|line| {
+        self.lines.iter().try_for_each(|line| {
             let line_base_y = line.base_y.unwrap();
-            line.pieces.iter().for_each(|piece| {
+            line.pieces.iter().try_for_each(|piece| {
                 let character = glyph_lib.find(piece.img());
                 if let Some(character) = character {
                     text.push_str(character);
@@ -202,27 +211,37 @@ impl ImagePieces {
                     };
 
                     if !ok {
-                        let characters = asker.ask_char_for_glyph(piece);
-                        text.push_str(characters.as_str());
-                        let orig_y = (
-                            piece.area().top() as i16 - line_base_y.0 as i16,
-                            piece.area().bottom() as i16 - line_base_y.1 as i16,
-                        );
-                        glyph_lib.add_glyph(Glyph::new(
-                            piece.img().clone(),
-                            orig_y,
-                            Some(characters),
-                        ));
+                        let glyph_res = asker.ask_char_for_glyph(piece);
+                        match glyph_res {
+                            GlyphResult::Abort => {
+                                return Err(Error::StopGlyphProcess);
+                            }
+                            GlyphResult::Char(characters) => {
+                                text.push_str(characters.as_str());
+                                let orig_y = (
+                                    piece.area().top() as i16 - line_base_y.0 as i16,
+                                    piece.area().bottom() as i16 - line_base_y.1 as i16,
+                                );
+                                glyph_lib.add_glyph(Glyph::new(
+                                    piece.img().clone(),
+                                    orig_y,
+                                    Some(characters),
+                                ));
+                            }
+                        }
                     }
                     // TODO: handle space
                 }
-            });
+                Ok(())
+            })?;
 
             // Add `eol` to text
             text.push('\n');
-        });
 
-        Ok::<_, Error>(text)
+            Ok::<_, Error>(())
+        })?;
+
+        Ok(text)
     }
 }
 
