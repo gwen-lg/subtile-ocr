@@ -221,9 +221,10 @@ fn ocr_opt(opt: &Opt) -> ToOcrImageOpt {
 /// # Errors
 ///  Will return [`Error::OcrFails`] if the ocr return an error for at least one image.
 #[profiling::function]
-pub fn check_subtitles<In>(subtitles: In) -> Result<Vec<(TimeSpan, String)>, Error>
+pub fn check_subtitles<In, InErr>(subtitles: In) -> Result<Vec<(TimeSpan, String)>, Error>
 where
-    In: IntoIterator<Item = (TimeSpan, Result<String, ocr::Error>)>,
+    In: IntoIterator<Item = (TimeSpan, Result<String, InErr>)>,
+    InErr: Into<Error> + std::error::Error + Send + Sync + 'static,
 {
     let mut ocr_error_count = 0;
     let subtitles = subtitles
