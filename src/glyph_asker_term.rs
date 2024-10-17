@@ -1,6 +1,6 @@
 use crate::ocs::{GlyphCharAsker, GlyphResult, Piece};
-use compact_str::ToCompactString;
-use crossterm::event::{self, KeyCode, KeyEventKind};
+use compact_str::CompactString;
+use crossterm::event::{self, KeyCode, KeyEventKind, KeyModifiers};
 use image::{DynamicImage, GrayImage, Pixel, Rgb, RgbImage};
 use ratatui::{prelude::Backend, Terminal};
 use ratatui_image::{picker::Picker, StatefulImage};
@@ -68,11 +68,23 @@ where
                 //frame.render_widget(msg, frame.area());
             })
             .unwrap();
+        let mut characters = CompactString::default();
         loop {
-            if let event::Event::Key(key) = event::read().unwrap() {
-                if key.kind == KeyEventKind::Press {
+            let event = event::read().unwrap();
+            if let event::Event::Key(key) = event {
+                if key.modifiers.intersects(KeyModifiers::CONTROL) {
+                    match key.code {
+                        KeyCode::Char('c') => {
+                            return GlyphResult::Abort;
+                        }
+                        _ => {
+                            // Ignore other key if Ctrl is pressed}
+                        }
+                    }
+                } else if key.kind == KeyEventKind::Press {
                     if let KeyCode::Char(char) = key.code {
-                        let characters = char.to_compact_string();
+                        characters.push(char);
+                    } else if key.code == KeyCode::Enter {
                         return GlyphResult::Char(characters);
                     }
                 }
