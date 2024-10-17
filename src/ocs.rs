@@ -28,7 +28,7 @@ pub enum GlyphResult {
 ///TODO move
 pub trait GlyphCharAsker {
     /// Method to ask the corresponding char(s) to a `Glyph`
-    fn ask_char_for_glyph(&self, piece: &Piece) -> GlyphResult;
+    fn ask_char_for_glyph(&self, img: &GrayImage, piece: &Piece) -> GlyphResult;
 }
 
 #[derive(Debug, Clone)]
@@ -183,6 +183,7 @@ impl Line {
 /// Result of a split
 pub struct ImagePieces {
     lines: Vec<Line>,
+    img: GrayImage,
 }
 
 impl ImagePieces {
@@ -236,7 +237,7 @@ impl ImagePieces {
                         };
 
                         if !ok {
-                            let glyph_res = asker.ask_char_for_glyph(piece);
+                            let glyph_res = asker.ask_char_for_glyph(&self.img, piece);
                             match glyph_res {
                                 GlyphResult::Abort => {
                                     return Err(Error::StopGlyphProcess);
@@ -307,7 +308,7 @@ impl ImageCharacterSplitter {
 
     /// Split image into a list of character image
     pub fn split_in_character_img(self) -> Result<ImagePieces, Error> {
-        let pieces = Self::split_in_pieces(self.img)?;
+        let pieces = Self::split_in_pieces(self.img.clone())?;
         if pieces.is_empty() {
             return Err(Error::NoCharactersFound);
         }
@@ -331,7 +332,10 @@ impl ImageCharacterSplitter {
             .iter_mut()
             .for_each(|line| line.pieces.iter_mut().for_each(|piece| piece.create_img()));
 
-        Ok(ImagePieces { lines })
+        Ok(ImagePieces {
+            lines,
+            img: self.img,
+        })
     }
 
     // Split the image into part of adjacent pixels
