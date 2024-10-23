@@ -308,6 +308,7 @@ impl ImageCharacterSplitter {
     }
 
     /// Split image into a list of character image
+    //TODO: manage line with only accents, this can happen with capital letter with accents
     pub fn split_in_character_img(self) -> Result<ImagePieces, Error> {
         let pieces = Self::split_in_pieces(self.img.clone())?;
         if pieces.is_empty() {
