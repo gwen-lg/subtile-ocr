@@ -1,4 +1,5 @@
 use image::{GrayImage, Luma};
+use std::fmt::Write;
 use subtile::content::{Area, AreaValues};
 use thiserror::Error;
 
@@ -152,6 +153,12 @@ impl ImagePieces {
                     text.push_str(character);
                 } else {
                     let proximities = glyph_lib.find_closest(piece.img());
+                    if log::log_enabled!(log::Level::Debug) {
+                        match dump_pieces_proximities(&proximities, piece) {
+                            Ok(dump) => log::debug!("{dump}"),
+                            Err(err) => log::debug!("Failed to dump proximities info : {err}"),
+                        };
+                    }
                     let ok = if let Some((sum, closest_glyph)) = proximities.first() {
                         let nb_pixels = piece.img().len();
                         let proximity = *sum as f32 / nb_pixels as f32;
@@ -184,6 +191,25 @@ impl ImagePieces {
 
         Ok::<_, Error>(text)
     }
+}
+
+// dump in a `String` the proximities between the piece and glyph from the library
+fn dump_pieces_proximities(proximities: &[(i32, &Glyph)], piece: &Piece) -> Result<String, Error> {
+    proximities
+        .iter()
+        .try_fold(String::with_capacity(1024), |mut out, (sum, glyph)| {
+            let nb_pixels = piece.img().len();
+            let proximity = *sum as f32 / nb_pixels as f32;
+            let _ = writeln!(
+                &mut out,
+                "{:?} : {}/{} => {}",
+                glyph.chars(),
+                sum,
+                nb_pixels,
+                proximity
+            );
+            Ok(out)
+        })
 }
 
 /// A struct to extract character from an image (black and white)
