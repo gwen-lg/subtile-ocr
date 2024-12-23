@@ -4,12 +4,12 @@ run-name: Checks Rust code on ${{ github.event_name }}
 on:
   push:
     paths:
-      - ".github/workflows/build.yml"
+      - ".github/workflows/code_check.yml"
       - "Cargo.*"
       - "src/**"
   pull_request:
     paths:
-      - ".github/workflows/build.yml"
+      - ".github/workflows/code_check.yml"
       - "Cargo.*"
       - "src/**"
 
