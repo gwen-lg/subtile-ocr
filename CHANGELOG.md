@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3](https://github.com/gwen-lg/subtile-ocr/compare/v0.2.2...v0.2.3) - 2025-01-07
+
+### Other
+
+- *(release-plz)* configure Release-plz for pr + release
+
 ## [0.2.2](https://github.com/gwen-lg/subtile-ocr/compare/v0.2.1...v0.2.2) - 2025-01-07
 
 ### Added
