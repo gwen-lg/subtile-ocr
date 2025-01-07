@@ -1,8 +1,3 @@
 /target
-*.png
-*.idx
-*.sub
-*.srt
-*.mkv
 /.direnv
 *.orig
