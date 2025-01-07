@@ -6,6 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2](https://github.com/gwen-lg/subtile-ocr/compare/v0.2.1...v0.2.2) - 2025-01-07
+
+### Added
+
+- *(puffin)* use a BufWriter for pref stats file
+
+### Other
+
+- *(gitignore)* remove data files of ignore
+- *(release-plz)* configure Release-plz for pr
+- *(cargo)* fix alphabetical order of dependencies
+- *(cargo)* update subtile dependendies to 0.3.1
+- fix github workflows change for trigger code_check
+- *(cargo)* update dependendies
+
 ## [0.2.1](https://github.com/gwen-lg/subtile-ocr/compare/v0.2.0...v0.2.1) - 2024-08-11
 
 ### 🚀 Features
