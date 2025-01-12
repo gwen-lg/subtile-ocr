@@ -14,6 +14,10 @@ jobs:
     name: Release-plz release
     runs-on: ubuntu-latest
     steps:
+      - name: "Install Ubuntu dependencies"
+        run: |
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential pkg-config
+          sudo apt-get install -y libleptonica-dev libtesseract-dev
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
