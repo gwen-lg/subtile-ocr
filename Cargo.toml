@@ -34,6 +34,7 @@ thiserror = "2.0"
 
 [patch.crates-io]
 puffin = { path = "../../puffin/puffin" }
+subtile = { path = "../subtile" }
 
 
 [features]

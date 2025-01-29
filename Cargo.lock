@@ -1045,8 +1045,6 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 [[package]]
 name = "subtile"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "68dcb792b6e7d5c97cae2b6920706ed1bd8a7b027fc23964fdbcc692f50152b3"
 dependencies = [
  "cast",
  "compact_str",
