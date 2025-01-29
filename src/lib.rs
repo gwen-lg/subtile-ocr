@@ -2,13 +2,11 @@
 
 mod ocr;
 mod opt;
-mod preprocessor;
 
 pub use crate::{ocr::process, ocr::Error as OcrError, ocr::OcrOpt, opt::Opt};
 
 use image::{GrayImage, LumaA};
 use log::warn;
-use preprocessor::rgb_palette_to_luminance;
 use rayon::{
     iter::{IntoParallelRefIterator, ParallelIterator},
     ThreadPoolBuildError,
@@ -24,7 +22,10 @@ use subtile::{
     pgs::{self, DecodeTimeImage, RleToImage},
     srt,
     time::TimeSpan,
-    vobsub::{self, conv_to_rgba, VobSubError, VobSubIndexedImage, VobSubOcrImage, VobSubToImage},
+    vobsub::{
+        self, conv_to_rgba, palette_rgb_to_luminance, VobSubError, VobSubIndexedImage,
+        VobSubOcrImage, VobSubToImage,
+    },
     SubtileError,
 };
 use thiserror::Error;
@@ -195,7 +196,7 @@ pub fn process_vobsub(opt: &Opt) -> Result<(Vec<TimeSpan>, Vec<GrayImage>), Erro
         profiling::scope!("Convert images for OCR");
 
         let ocr_opt = ocr_opt(opt);
-        let palette = rgb_palette_to_luminance(idx.palette());
+        let palette = palette_rgb_to_luminance(idx.palette());
         images
             .par_iter()
             .map(|vobsub_img| {
