@@ -31,6 +31,10 @@ simple_logger = { version = "5.0", features = ["colors"] }
 subtile = "0.3"
 thiserror = "2.0"
 
+[patch.crates-io]
+puffin = { path = "../../puffin/puffin" }
+subtile = { path = "../subtile" }
+
 [features]
 default = []
 profile-with-puffin = ["profiling/profile-with-puffin", "dep:puffin"]
