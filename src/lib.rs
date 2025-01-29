@@ -4,7 +4,7 @@ mod ocr;
 mod opt;
 mod preprocessor;
 
-pub use crate::{ocr::Error as OcrError, ocr::OcrOpt, opt::Opt};
+pub use crate::{ocr::process, ocr::Error as OcrError, ocr::OcrOpt, opt::Opt};
 
 use image::{GrayImage, LumaA};
 use log::warn;
