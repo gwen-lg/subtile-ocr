@@ -23,3 +23,41 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: webiny/action-conventional-commits@v1.3.0
+
+  check-push-commits:
+    if: ${{ github.event_name == 'push' }}
+    strategy:
+      matrix:
+        commit: ${{ github.event.commits }}
+        features: [default, profile-with-puffin]
+
+    name: "Check: with `${{ matrix.features }}` feature ${{ matrix.commit.message }} "
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Install dependencies Ubuntu"
+        run: |
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential pkg-config
+          sudo apt-get install -y libleptonica-dev libtesseract-dev
+
+      - name: "Install rust-toolchain stable"
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          components: clippy, rustfmt
+
+      - name: "Show environment"
+        run: |
+          rustc -vV
+          cargo -vV
+
+      - name: "Checkout"
+        uses: actions/checkout@v4
+        with:
+          ref: "${{ matrix.commit.id }}"
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Run repository checks
+        uses: ./.github/actions/checks
+        with:
+          features: --features ${{ matrix.features }}
