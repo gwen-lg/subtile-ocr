@@ -6,6 +6,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.4](https://github.com/gwen-lg/subtile-ocr/compare/v0.2.3...v0.2.4) - 2025-02-08
+
+### Added
+
+- *(ocr)* export ocr::process symbol
+
+### Fixed
+
+- *(ocr)* also init `TESSERACT` on main thread
+
+### Other
+
+- *(ocr)* error for already initialized TESSERACT
+- *(ocr)* manage Tesseract init error
+- *(code_check)* add `--locked` to cargo steps
+- *(code_check)* remove `exit 1` in error summary check
+- *(ocr)* Add documentation to ocr::Error
+
 ## [0.2.3](https://github.com/gwen-lg/subtile-ocr/compare/v0.2.2...v0.2.3) - 2025-01-07
 
 ### Other
