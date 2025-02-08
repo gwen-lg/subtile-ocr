@@ -49,13 +49,13 @@ jobs:
         id: cargo_clippy
         if: $${{ always() }}
         run: |
-          cargo clippy --profile=test --features ${{ matrix.features }}
+          cargo clippy --locked --profile=test --features ${{ matrix.features }}
 
       - name: "Cargo test"
         id: cargo_test
         if: $${{ always() }}
         run: |
-          cargo test --features ${{ matrix.features }}
+          cargo test --locked --features ${{ matrix.features }}
 
       - name: "Cargo formatting"
         id: cargo_fmt
