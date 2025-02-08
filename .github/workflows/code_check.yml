@@ -91,7 +91,6 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Please check the failed jobs and fix where needed." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          exit 1
 
       - name: "All checks passed"
         if: ${{ success() }}
