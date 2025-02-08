@@ -77,7 +77,13 @@ where
     Img: IntoParallelIterator<Item = GrayImage>,
 {
     std::env::set_var("OMP_THREAD_LIMIT", "1");
-    // Init tesseract
+
+    // Init tesseract on the main thread:
+    let tesseract = TesseractWrapper::new(opt.tessdata_dir.as_deref(), opt.lang, opt.config)?;
+    if TESSERACT.replace(Some(tesseract)).is_some() {
+        return Err(Error::AlreadyInitialized);
+    };
+    // and on threadpool:
     broadcast(|ctx| {
         profiling::scope!("Tesseract Init Wrapper");
         trace!(
@@ -109,7 +115,7 @@ where
         })
         .collect::<Vec<Result<String>>>();
 
-    // Clean tesseract from Thread local vars
+    // Clean tesseract from Thread local vars for Threadpool
     broadcast(|ctx| {
         profiling::scope!("Tesseract Drop Wrapper");
         trace!("Drop TesseractWrapper local var on thread {}", ctx.index());
@@ -117,6 +123,10 @@ where
             drop(tesseract);
         }
     });
+    // ... for main thread
+    if let Some(tesseract) = TESSERACT.take() {
+        drop(tesseract);
+    }
 
     Ok(subs)
 }
