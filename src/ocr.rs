@@ -81,11 +81,13 @@ where
             opt.lang,
             ctx.index()
         );
-        let tesseract =
-            TesseractWrapper::new(opt.tessdata_dir.as_deref(), opt.lang, opt.config).unwrap();
+        let tesseract = TesseractWrapper::new(opt.tessdata_dir.as_deref(), opt.lang, opt.config)?;
         let old = TESSERACT.replace(Some(tesseract));
         assert!(old.is_none());
-    });
+        Ok::<_, Error>(())
+    })
+    .into_iter()
+    .try_for_each(|init_res| init_res)?;
 
     // Process images
     let subs = images
