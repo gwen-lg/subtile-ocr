@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.5](https://github.com/gwen-lg/subtile-ocr/compare/v0.2.4...v0.2.5) - 2025-02-08
+
+### Other
+
+- add FUNDING.yml file with liberapay account
+
 ## [0.2.4](https://github.com/gwen-lg/subtile-ocr/compare/v0.2.3...v0.2.4) - 2025-02-08
 
 ### Added
