@@ -43,6 +43,10 @@ pub enum Error {
     #[error("Could not initialize tesseract")]
     Initialize(#[from] TessInitError),
 
+    /// Indicate than `TESSERACT` was already initialized on this thread
+    #[error("Thread local var `TESSERACT` is already initialized")]
+    AlreadyInitialized,
+
     /// Indicate an error during `Tesseract` variable set.
     #[error("Could not set tesseract variable")]
     SetVariable(#[from] TessSetVariableError),
@@ -82,8 +86,9 @@ where
             ctx.index()
         );
         let tesseract = TesseractWrapper::new(opt.tessdata_dir.as_deref(), opt.lang, opt.config)?;
-        let old = TESSERACT.replace(Some(tesseract));
-        assert!(old.is_none());
+        if TESSERACT.replace(Some(tesseract)).is_some() {
+            return Err(Error::AlreadyInitialized);
+        };
         Ok::<_, Error>(())
     })
     .into_iter()
