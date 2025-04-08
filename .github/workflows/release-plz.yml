@@ -1,9 +1,5 @@
 name: Release-plz
 
-permissions:
-  pull-requests: write
-  contents: write
-
 on:
   push:
     branches:
@@ -13,6 +9,9 @@ jobs:
   release-plz-release:
     name: Release-plz release
     runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'gwen-lg' }}
+    permissions:
+      contents: write
     steps:
       - name: "Install Ubuntu dependencies"
         run: |
@@ -36,6 +35,10 @@ jobs:
   release-plz-pr:
     name: Release-plz PR
     runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'gwen-lg' }}
+    permissions:
+      pull-requests: write
+      contents: write
     concurrency:
       group: release-plz-${{ github.ref }}
       cancel-in-progress: false
