@@ -21,7 +21,7 @@ pub struct OcrOpt<'a> {
 impl<'a> OcrOpt<'a> {
     /// Create a new `OcrOpt`
     #[must_use]
-    pub fn new(
+    pub const fn new(
         tessdata_dir: &'a Option<String>,
         lang: &'a str,
         config: &'a Vec<(Variable, String)>,

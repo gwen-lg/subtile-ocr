@@ -36,10 +36,10 @@ fn main() -> anyhow::Result<()> {
 #[cfg(not(feature = "profile-with-puffin"))]
 mod no_profiling {
     pub struct Empty;
-    pub fn init() -> Empty {
+    pub const fn init() -> Empty {
         Empty {}
     }
-    pub fn write_perf_file(_: Empty) -> anyhow::Result<()> {
+    pub const fn write_perf_file(_: Empty) -> anyhow::Result<()> {
         Ok(())
     }
 }
