@@ -28,7 +28,7 @@ fn main() -> anyhow::Result<()> {
     });
 
     profiling::finish_frame!();
-    prof::write_perf_file(profiling_data)?;
+    prof::write_perf_file(&profiling_data)?;
 
     res
 }
@@ -39,7 +39,7 @@ mod no_profiling {
     pub const fn init() -> Empty {
         Empty {}
     }
-    pub const fn write_perf_file(_: Empty) -> anyhow::Result<()> {
+    pub const fn write_perf_file(_: &Empty) -> anyhow::Result<()> {
         Ok(())
     }
 }
@@ -59,7 +59,7 @@ mod puffin_profiling {
         global_frame_view
     }
 
-    pub fn write_perf_file(global_frame_view: GlobalFrameView) -> anyhow::Result<()> {
+    pub fn write_perf_file(global_frame_view: &GlobalFrameView) -> anyhow::Result<()> {
         let now = Local::now().format("%Y-%m-%d-%T").to_string();
         let filename = format!("perf/capture_{now}.puffin");
 
