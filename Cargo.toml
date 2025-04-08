@@ -43,26 +43,37 @@ unused_imports = "deny"
 cargo = { priority = -1, level = "warn" }
 complexity = { priority = -1, level = "deny" }
 correctness = { priority = -1, level = "deny" }
-# nursery = { priority = -1, level = "deny" }
-# pedantic = { priority = -1, level = "warn" }
 perf = { priority = -1, level = "deny" }
-# restriction = { priority = -1, level = "deny" }
 style = { priority = -1, level = "deny" }
-# suspicious = { priority = -1, level = "deny" }
+# The individually activated lints below come from : nursery, pedantic, restriction or suspicious.
 bind_instead_of_map = "deny"
+type_repetition_in_bounds = "deny"
 borrowed_box = "deny"
 cast_lossless = "deny"
+checked_conversions = "deny"
 clone_on_copy = "deny"
+derive_partial_eq_without_eq = "deny"
 doc_markdown = "deny"
+explicit_deref_methods = "deny"
 extra_unused_lifetimes = "deny"
 if_not_else = "deny"
+manual_assert = "deny"
+map_unwrap_or = "deny"
 match_same_arms = "deny"
+missing_const_for_fn = "deny"
 missing_errors_doc = "deny"
 missing_fields_in_debug = "deny"
 missing_panics_doc = "deny"
 must_use_candidate = "deny"
+needless_collect = "deny"
+needless_pass_by_ref_mut = "deny"
+needless_pass_by_value = "deny"
+nonminimal_bool = "deny"
 or_fun_call = "deny"
+semicolon_if_nothing_returned = "deny"
 trivially_copy_pass_by_ref = "deny"
+type-repetition-in-bounds = "deny"
 uninlined_format_args = "deny"
+use_self = "deny"
 unreadable_literal = "deny"
 useless_conversion = "deny"
