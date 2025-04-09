@@ -864,7 +864,6 @@ dependencies = [
  "iter_fixed",
  "log",
  "nom",
- "once_cell",
  "profiling",
  "regex",
  "thiserror 2.0.11",
