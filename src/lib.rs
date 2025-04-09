@@ -5,7 +5,7 @@ mod opt;
 
 pub use crate::{ocr::process, ocr::Error as OcrError, ocr::OcrOpt, opt::Opt};
 
-use image::{GrayImage, LumaA};
+use image::GrayImage;
 use log::warn;
 use rayon::{
     iter::{IntoParallelRefIterator, ParallelIterator},
@@ -141,7 +141,7 @@ pub fn process_pgs(opt: &Opt) -> Result<(Vec<TimeSpan>, Vec<GrayImage>), Error> 
     if opt.dump_raw {
         let images = rle_images
             .iter()
-            .map(|rle_img| RleToImage::new(rle_img, |pix: LumaA<u8>| pix).to_image());
+            .map(|rle_img| RleToImage::new(rle_img, |pix| pix).to_image());
         dump_images("dumps_raw", images).map_err(Error::DumpImage)?;
     }
 
