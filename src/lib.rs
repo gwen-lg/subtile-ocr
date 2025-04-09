@@ -19,7 +19,7 @@ use std::{
 };
 use subtile::{
     image::{dump_images, luma_a_to_luma, ToImage, ToOcrImage, ToOcrImageOpt},
-    pgs::{self, DecodeTimeImage, RleToImage},
+    pgs::{self, pixel_pass_through, DecodeTimeImage, RleToImage},
     srt,
     time::TimeSpan,
     vobsub::{
@@ -141,7 +141,7 @@ pub fn process_pgs(opt: &Opt) -> Result<(Vec<TimeSpan>, Vec<GrayImage>), Error> 
     if opt.dump_raw {
         let images = rle_images
             .iter()
-            .map(|rle_img| RleToImage::new(rle_img, |pix: LumaA<u8>| pix).to_image());
+            .map(|rle_img| RleToImage::new(rle_img, pixel_pass_through).to_image());
         dump_images("dumps_raw", images).map_err(Error::DumpImage)?;
     }
 
