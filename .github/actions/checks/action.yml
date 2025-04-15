@@ -1,0 +1,66 @@
+name: "Check repository"
+description: "Checks typos, code lints, formatting, doc, test"
+inputs:
+  features:
+    description: "cargo feature to enable"
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Check spelling of entire workspace
+      id: typos_check
+      if: $${{ always() }}
+      uses: crate-ci/typos@master
+
+    - name: "Cargo formatting"
+      id: cargo_fmt
+      if: $${{ always() }}
+      shell: bash
+      run: cargo fmt --all -- --check
+
+    - name: "Cargo clippy"
+      id: cargo_clippy
+      if: $${{ always() }}
+      shell: bash
+      run: cargo clippy --locked --profile=test --all-targets --all-features
+
+    - name: "Cargo doc"
+      id: cargo_doc
+      if: $${{ always() }}
+      shell: bash
+      env:
+        RUSTDOCFLAGS: "-D warnings"
+      run: cargo doc --locked
+
+    - name: "Cargo test"
+      id: cargo_test
+      if: $${{ always() }}
+      shell: bash
+      run: cargo test --locked ${{ inputs.features }}
+
+    - name: "Some checks failed"
+      if: ${{ failure() }}
+      shell: bash
+      run: |
+        echo "### :x: Checks Failed!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "|Job|Status|" >> $GITHUB_STEP_SUMMARY
+        echo "|---|------|" >> $GITHUB_STEP_SUMMARY
+        echo "|typos|${{ steps.typos_check.outcome}}|" >> $GITHUB_STEP_SUMMARY
+        echo "|Cargo fmt|${{ steps.cargo_fmt.outcome }}|" >> $GITHUB_STEP_SUMMARY
+        echo "|Cargo clippy|${{ steps.cargo_clippy.outcome }}|" >> $GITHUB_STEP_SUMMARY
+        echo "|Cargo doc|${{ steps.cargo_doc.outcome }}|" >> $GITHUB_STEP_SUMMARY
+        echo "|Cargo test|${{ steps.cargo_test.outcome }}|" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Please check the failed jobs and fix where needed." >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        exit 1
+
+    - name: "All checks passed"
+      if: ${{ success() }}
+      shell: bash
+      run: |
+        echo "### :white_check_mark: Checks Passed!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
