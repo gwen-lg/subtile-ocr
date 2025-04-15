@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.5](https://github.com/gwen-lg/subtile-ocr/compare/v0.2.4...v0.2.5) - 2025-04-15
+
+### Other
+
+- ignore `wip*` branch on push
+- *(release-plz)* update release-plz action
+- add dependabot.yml for github
+- *(clippy)* pass profiling_data argument by ref to write_perf_file fn
+- *(clippy)* enable addidionnal clippy lints
+- add missing const on some fn
+- add conf with allowed-duplicate-crates
+- add FUNDING.yml file with liberapay account
+
 ## [0.2.4](https://github.com/gwen-lg/subtile-ocr/compare/v0.2.3...v0.2.4) - 2025-02-08
 
 ### Added
