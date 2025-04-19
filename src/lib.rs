@@ -12,10 +12,9 @@ use rayon::{
     ThreadPoolBuildError,
 };
 use std::{
-    ffi::OsStr,
     fs::File,
     io::{self, BufReader, BufWriter},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 use subtile::{
     image::{dump_images, luma_a_to_luma, ToImage, ToOcrImage, ToOcrImageOpt},
@@ -40,8 +39,11 @@ pub enum Error {
     #[error("The file extension '{extension}' is not managed.")]
     InvalidFileExtension { extension: String },
 
-    #[error("The file doesn't have a valid extension, can't choose a parser.")]
+    #[error("The file doesn't have an extension, can't choose a parser.")]
     NoFileExtension,
+
+    #[error("The file doesn't have an utf8 extension, can't choose a parser.")]
+    NotUtf8Extension,
 
     #[error("Failed to open `Index` file.")]
     IndexOpen(#[source] VobSubError),
@@ -81,6 +83,7 @@ pub enum Error {
 /// Will return [`Error::RayonThreadPool`] if `build_global` of the `ThreadPool` rayon failed.
 /// Will return [`Error::InvalidFileExtension`] if the file extension is not managed.
 /// Will return [`Error::NoFileExtension`] if the file have no extension.
+/// Will return [`Error::NotUtf8Extension`] if the file have an extension which is not utf8.
 /// Will return [`Error::WriteSrtFile`] of [`Error::WriteSrtStdout`] if failed to write subtitles as `srt`.
 /// Will forward error from `ocr` processing and [`check_subtitles`] if any.
 #[profiling::function]
@@ -90,15 +93,12 @@ pub fn run(opt: &Opt) -> Result<(), Error> {
         .build_global()
         .map_err(Error::RayonThreadPool)?;
 
-    let (times, images) = match opt.input.extension().and_then(OsStr::to_str) {
-        Some(ext) => match ext {
-            "sup" => process_pgs(opt),
-            "sub" | "idx" => process_vobsub(opt),
-            ext => Err(Error::InvalidFileExtension {
-                extension: ext.into(),
-            }),
-        },
-        None => Err(Error::NoFileExtension),
+    let (times, images) = match extract_extension(&opt.input)? {
+        "sup" => process_pgs(opt),
+        "sub" | "idx" => process_vobsub(opt),
+        ext => Err(Error::InvalidFileExtension {
+            extension: ext.into(),
+        }),
     }?;
 
     // Dump images if requested.
@@ -114,6 +114,19 @@ pub fn run(opt: &Opt) -> Result<(), Error> {
     write_srt(&opt.output, &subtitles)?;
 
     Ok(())
+}
+
+/// Extract extension of a path
+///
+/// # Errors
+///
+/// Will return [`Error::NoFileExtension`] if the file have no extension.
+/// Will return [`Error::NotUtf8Extension`] if the file have an extension which is not utf8.
+pub fn extract_extension(path: &Path) -> Result<&str, Error> {
+    path.extension()
+        .ok_or(Error::NoFileExtension)?
+        .to_str()
+        .ok_or(Error::NotUtf8Extension)
 }
 
 /// Process `PGS` subtitle file
