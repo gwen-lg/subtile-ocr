@@ -40,7 +40,7 @@ runs:
       shell: bash
       env:
         RUSTDOCFLAGS: "-D warnings"
-      run: cargo doc --locked
+      run: cargo doc --locked --no-deps
 
     - name: "Cargo test"
       id: cargo_test
