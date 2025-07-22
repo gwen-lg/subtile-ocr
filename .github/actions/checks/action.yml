@@ -14,6 +14,14 @@ runs:
       if: $${{ always() }}
       uses: crate-ci/typos@master
 
+    - name: "Cargo.toml format"
+      id: cargo_toml_fmt
+      if: $${{ always() }}
+      uses: gwen-lg/taplo-action@v1
+      with:
+        format: true
+        lint: false
+
     - name: "Cargo formatting"
       id: cargo_fmt
       if: $${{ always() }}
@@ -49,6 +57,7 @@ runs:
         echo "|Job|Status|" >> $GITHUB_STEP_SUMMARY
         echo "|---|------|" >> $GITHUB_STEP_SUMMARY
         echo "|typos|${{ steps.typos_check.outcome}}|" >> $GITHUB_STEP_SUMMARY
+        echo "|Taplo fmt|${{ steps.cargo_toml_fmt.outcome }}|" >> $GITHUB_STEP_SUMMARY
         echo "|Cargo fmt|${{ steps.cargo_fmt.outcome }}|" >> $GITHUB_STEP_SUMMARY
         echo "|Cargo clippy|${{ steps.cargo_clippy.outcome }}|" >> $GITHUB_STEP_SUMMARY
         echo "|Cargo doc|${{ steps.cargo_doc.outcome }}|" >> $GITHUB_STEP_SUMMARY
