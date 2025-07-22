@@ -27,6 +27,7 @@ jobs:
   check-push-commits:
     if: ${{ github.event_name == 'push' }}
     strategy:
+      fail-fast: false
       matrix:
         commit: ${{ github.event.commits }}
         features: [default, profile-with-puffin]
