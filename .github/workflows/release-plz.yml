@@ -9,6 +9,7 @@ jobs:
   release-plz-release:
     name: Release-plz release
     runs-on: ubuntu-latest
+    environment: publishing
     if: ${{ github.repository_owner == 'gwen-lg' }}
     permissions:
       contents: write
