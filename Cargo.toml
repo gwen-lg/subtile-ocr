@@ -28,7 +28,7 @@ puffin = { version = "0.19", features = ["serialization"], optional = true }
 rayon = "1.10"
 scoped-tls-hkt = "0.1"
 simple_logger = { version = "5.0", features = ["colors"] }
-subtile = "0.3"
+subtile = "0.4"
 thiserror = "2.0"
 
 [features]
