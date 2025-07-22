@@ -6,10 +6,10 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 enum Error {
-    #[error("No `=` in key-value pair {value}")]
+    #[error("no `=` in key-value pair {value}")]
     ParseKeyValuePair { value: String },
 
-    #[error("Invalid tesseract variable name: {value}")]
+    #[error("invalid tesseract variable name: {value}")]
     TesseractVariableName { value: String },
 }
 

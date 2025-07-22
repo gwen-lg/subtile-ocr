@@ -33,40 +33,40 @@ use thiserror::Error;
 #[allow(missing_docs)]
 #[derive(Error, Debug)]
 pub enum Error {
-    #[error("Failed to create a rayon ThreadPool.")]
+    #[error("failed to create a rayon ThreadPool")]
     RayonThreadPool(#[from] ThreadPoolBuildError),
 
-    #[error("The file extension '{extension}' is not managed.")]
+    #[error("the file extension '{extension}' is not managed")]
     InvalidFileExtension { extension: String },
 
-    #[error("The file doesn't have a valid extension, can't choose a parser.")]
+    #[error("the file doesn't have a valid extension, can't choose a parser")]
     NoFileExtension,
 
-    #[error("Failed to open Index file.")]
+    #[error("failed to open Index file.")]
     IndexOpen(#[source] VobSubError),
 
-    #[error("Failed to create PgsParser from file")]
+    #[error("failed to create PgsParser from file")]
     PgsParserFromFile(#[source] pgs::PgsError),
 
-    #[error("Failed to parse Pgs")]
+    #[error("failed to parse Pgs")]
     PgsParsing(#[source] pgs::PgsError),
 
-    #[error("Failed to dump subtitles images")]
+    #[error("failed to dump subtitles images")]
     DumpImage(#[source] SubtileError),
 
-    #[error("Could not perform OCR on subtitles.")]
+    #[error("could not perform OCR on subtitles.")]
     Ocr(#[from] ocr::Error),
 
-    #[error("Error happen during OCR on {0} subtitles images")]
+    #[error("error happen during OCR on {0} subtitles images")]
     OcrFails(u32),
 
-    #[error("Could not generate SRT file: {message}")]
+    #[error("could not generate SRT file: {message}")]
     GenerateSrt { message: String },
 
-    #[error("Could not write SRT file {}", path.display())]
+    #[error("could not write SRT file {}", path.display())]
     WriteSrtFile { path: PathBuf, source: io::Error },
 
-    #[error("Could not write SRT on stdout.")]
+    #[error("could not write SRT on stdout.")]
     WriteSrtStdout { source: io::Error },
 }
 

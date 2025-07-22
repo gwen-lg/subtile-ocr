@@ -40,27 +40,27 @@ impl<'a> OcrOpt<'a> {
 #[derive(Error, Debug)]
 pub enum Error {
     /// Indicate than `Tesseract` could not be initialized.
-    #[error("Could not initialize tesseract")]
+    #[error("could not initialize tesseract")]
     Initialize(#[from] TessInitError),
 
     /// Indicate than `TESSERACT` was already initialized on this thread
-    #[error("Thread local var `TESSERACT` is already initialized")]
+    #[error("thread local var `TESSERACT` is already initialized")]
     AlreadyInitialized,
 
     /// Indicate an error during `Tesseract` variable set.
-    #[error("Could not set tesseract variable")]
+    #[error("could not set tesseract variable")]
     SetVariable(#[from] TessSetVariableError),
 
     /// Indicate than the `pnm` image couldn't be wrote in memory.
-    #[error("Could not write image to memory")]
+    #[error("could not write image to memory")]
     WritePnmImage(#[from] image::ImageError),
 
     /// Indicate a failure during set `Pnm` image to `Tesseract`.
-    #[error("Could not set `Tesseract` image")]
+    #[error("could not set `Tesseract` image")]
     SetImage(#[from] PixError),
 
     /// Indicate than `Tesseract` failed to provide a text from the image.
-    #[error("Could not get `Tesseract` text")]
+    #[error("could not get `Tesseract` text")]
     GetText(#[from] Utf8Error),
 }
 
