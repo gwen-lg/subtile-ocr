@@ -2,13 +2,11 @@
 
 mod ocr;
 mod opt;
-mod preprocessor;
 
 pub use crate::{ocr::process, ocr::Error as OcrError, ocr::OcrOpt, opt::Opt};
 
-use image::{GrayImage, LumaA};
+use image::GrayImage;
 use log::warn;
-use preprocessor::rgb_palette_to_luminance;
 use rayon::{
     iter::{IntoParallelRefIterator, ParallelIterator},
     ThreadPoolBuildError,
@@ -24,7 +22,10 @@ use subtile::{
     pgs::{self, DecodeTimeImage, RleToImage},
     srt,
     time::TimeSpan,
-    vobsub::{self, conv_to_rgba, VobSubError, VobSubIndexedImage, VobSubOcrImage, VobSubToImage},
+    vobsub::{
+        self, conv_to_rgba, palette_rgb_to_luminance, VobSubError, VobSubIndexedImage,
+        VobSubOcrImage, VobSubToImage,
+    },
     SubtileError,
 };
 use thiserror::Error;
@@ -42,8 +43,11 @@ pub enum Error {
     #[error("the file doesn't have a valid extension, can't choose a parser")]
     NoFileExtension,
 
-    #[error("failed to open Index file.")]
+    #[error("failed to open `Index` file")]
     IndexOpen(#[source] VobSubError),
+
+    #[error("failed to open `Sub` file")]
+    SubOpen(#[source] VobSubError),
 
     #[error("failed to create PgsParser from file")]
     PgsParserFromFile(#[source] pgs::PgsError),
@@ -89,7 +93,7 @@ pub fn run(opt: &Opt) -> Result<(), Error> {
     let (times, images) = match opt.input.extension().and_then(OsStr::to_str) {
         Some(ext) => match ext {
             "sup" => process_pgs(opt),
-            "idx" => process_vobsub(opt),
+            "sub" | "idx" => process_vobsub(opt),
             ext => Err(Error::InvalidFileExtension {
                 extension: ext.into(),
             }),
@@ -137,7 +141,7 @@ pub fn process_pgs(opt: &Opt) -> Result<(Vec<TimeSpan>, Vec<GrayImage>), Error> 
     if opt.dump_raw {
         let images = rle_images
             .iter()
-            .map(|rle_img| RleToImage::new(rle_img, |pix: LumaA<u8>| pix).to_image());
+            .map(|rle_img| RleToImage::new(rle_img, |pix| pix).to_image());
         dump_images("dumps_raw", images).map_err(Error::DumpImage)?;
     }
 
@@ -163,13 +167,20 @@ pub fn process_pgs(opt: &Opt) -> Result<(Vec<TimeSpan>, Vec<GrayImage>), Error> 
 /// Will return [`Error::DumpImage`] if the dump of raw image failed.
 #[profiling::function]
 pub fn process_vobsub(opt: &Opt) -> Result<(Vec<TimeSpan>, Vec<GrayImage>), Error> {
+    let mut input_path = opt.input.clone();
+    let sub = {
+        profiling::scope!("Open sub");
+        input_path.set_extension("sub");
+        vobsub::Sub::open(&input_path).map_err(Error::SubOpen)?
+    };
     let idx = {
         profiling::scope!("Open idx");
-        vobsub::Index::open(&opt.input).map_err(Error::IndexOpen)?
+        input_path.set_extension("idx");
+        vobsub::Index::open(&input_path).map_err(Error::IndexOpen)?
     };
     let (times, images): (Vec<_>, Vec<_>) = {
         profiling::scope!("Parse subtitles");
-        idx.subtitles::<(TimeSpan, VobSubIndexedImage)>()
+        sub.subtitles::<(TimeSpan, VobSubIndexedImage)>()
             .filter_map(|sub| match sub {
                 Ok(sub) => Some(sub),
                 Err(e) => {
@@ -195,7 +206,7 @@ pub fn process_vobsub(opt: &Opt) -> Result<(Vec<TimeSpan>, Vec<GrayImage>), Erro
         profiling::scope!("Convert images for OCR");
 
         let ocr_opt = ocr_opt(opt);
-        let palette = rgb_palette_to_luminance(idx.palette());
+        let palette = palette_rgb_to_luminance(idx.palette());
         images
             .par_iter()
             .map(|vobsub_img| {
