@@ -1,4 +1,50 @@
 # Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [0.2.5](https://github.com/gwen-lg/subtile-ocr/compare/v0.2.4...v0.2.5) - 2025-07-24
+
+### Added
+
+- *(vobsub)* manage `sub` file without associated `idx`
+- *(taplo)* add Taplo configuration file
+
+### Fixed
+
+- migrate to use palette vobsub conversion
+
+### Other
+
+- update dependencies
+- enable additionnal clippy lints in Cargo.toml
+- *(cargo)* enable reorder_keys formating for lints
+- improve rust cache use
+- improve subtitle extension management
+- remove useless pix type define for passthrough
+- *(subtile)* update to subtile v0.4 dependency
+- *(release-plz)* use publishing environment
+- *(commits)* disable fast fail on matrix strategy
+- *(release-plz)* update workflow from v0.3.138
+- *(error)* remove capital letter at start of error message
+- *(commits)* add check-commits on push
+- *(commits)* add new workflow to check commits
+- *(checks)* dont build doc for deps
+- *(checks)* add check of Cargo.toml formating with Taplo
+- *(checks)* create checks action with repository checks
+- ignore `wip*` branch on push
+- *(release-plz)* update release-plz action
+- add dependabot.yml for github
+- *(clippy)* pass profiling_data argument by ref to write_perf_file fn
+- *(clippy)* enable addidionnal clippy lints
+- add missing const on some fn
+- add conf with allowed-duplicate-crates
+- add FUNDING.yml file with liberapay account
+# Changelog
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),

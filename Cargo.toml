@@ -1,6 +1,6 @@
 [package]
 name = "subtile-ocr"
-version = "0.2.4"
+version = "0.2.5"
 authors = ["Eliza Velasquez", "Gwen Lg <me@gwenlg.fr>"]
 edition = "2021"
 description = "Converts DVD VOB subtitles to SRT subtitles with Tesseract OCR"
