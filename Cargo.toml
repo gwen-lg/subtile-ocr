@@ -47,7 +47,6 @@ perf = { priority = -1, level = "deny" }
 style = { priority = -1, level = "deny" }
 # The individually activated lints below come from : nursery, pedantic, restriction or suspicious.
 bind_instead_of_map = "deny"
-type_repetition_in_bounds = "deny"
 borrowed_box = "deny"
 cast_lossless = "deny"
 checked_conversions = "deny"
@@ -73,7 +72,8 @@ or_fun_call = "deny"
 semicolon_if_nothing_returned = "deny"
 trivially_copy_pass_by_ref = "deny"
 type-repetition-in-bounds = "deny"
+type_repetition_in_bounds = "deny"
 uninlined_format_args = "deny"
-use_self = "deny"
 unreadable_literal = "deny"
+use_self = "deny"
 useless_conversion = "deny"
