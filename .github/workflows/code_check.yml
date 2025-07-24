@@ -47,6 +47,12 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v4
 
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "ghw_checks"
+          key: "${{ matrix.features }}"
+          cache-on-failure: true # useful for don't rebuild dependencies on fix after failure
+
       - name: "Run repository checks"
         uses: ./.github/actions/checks
         with:
