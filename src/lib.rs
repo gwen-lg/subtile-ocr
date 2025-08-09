@@ -133,7 +133,7 @@ pub fn extract_extension(path: &Path) -> Result<&str, Error> {
 ///
 /// # Errors
 ///
-/// Will return [`Error::PgsParserFromFile`] if SupParser failed to be init from file.
+/// Will return [`Error::PgsParserFromFile`] if `SupParser` failed to be init from file.
 /// Will return [`Error::PgsParsing`] if the parsing of subtitles failed.
 /// Will return [`Error::DumpImage`] if the dump of raw image failed.
 #[profiling::function]
