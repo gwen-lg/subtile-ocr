@@ -111,7 +111,7 @@ pub fn run(opt: &Opt) -> Result<(), Error> {
     let subtitles = check_subtitles(times.into_iter().zip(texts))?;
 
     // Create subtitle file.
-    write_srt(&opt.output, &subtitles)?;
+    write_srt(opt.output.as_deref(), &subtitles)?;
 
     Ok(())
 }
@@ -275,7 +275,7 @@ where
 }
 
 #[profiling::function]
-fn write_srt(path: &Option<PathBuf>, subtitles: &[(TimeSpan, String)]) -> Result<(), Error> {
+fn write_srt(path: Option<&Path>, subtitles: &[(TimeSpan, String)]) -> Result<(), Error> {
     match &path {
         Some(path) => {
             let mkerr = |source| Error::WriteSrtFile {
