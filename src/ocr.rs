@@ -82,7 +82,7 @@ where
     let tesseract = TesseractWrapper::new(opt.tessdata_dir.as_deref(), opt.lang, opt.config)?;
     if TESSERACT.replace(Some(tesseract)).is_some() {
         return Err(Error::AlreadyInitialized);
-    };
+    }
     // and on threadpool:
     broadcast(|ctx| {
         profiling::scope!("Tesseract Init Wrapper");
@@ -94,7 +94,7 @@ where
         let tesseract = TesseractWrapper::new(opt.tessdata_dir.as_deref(), opt.lang, opt.config)?;
         if TESSERACT.replace(Some(tesseract)).is_some() {
             return Err(Error::AlreadyInitialized);
-        };
+        }
         Ok::<_, Error>(())
     })
     .into_iter()
