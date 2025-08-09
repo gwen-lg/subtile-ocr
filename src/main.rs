@@ -39,6 +39,8 @@ mod no_profiling {
     pub const fn init() -> Empty {
         Empty {}
     }
+
+    #[expect(clippy::unnecessary_wraps)]
     pub const fn write_perf_file(_: &Empty) -> anyhow::Result<()> {
         Ok(())
     }
