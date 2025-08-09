@@ -46,6 +46,7 @@ correctness = { priority = -1, level = "deny" }
 perf = { priority = -1, level = "deny" }
 style = { priority = -1, level = "deny" }
 # The individually activated lints below come from : nursery, pedantic, restriction or suspicious.
+allow_attributes = "deny"
 bind_instead_of_map = "deny"
 borrowed_box = "deny"
 cast_lossless = "deny"

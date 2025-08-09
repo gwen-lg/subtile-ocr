@@ -49,7 +49,7 @@ pub struct Opt {
     #[clap(short = 'l', long)]
     pub lang: String,
 
-    #[allow(clippy::doc_markdown)]
+    #[expect(clippy::doc_markdown)]
     /// Set values for config variables.
     ///
     /// This works like the `tesseract` command's `-c` argument. One
