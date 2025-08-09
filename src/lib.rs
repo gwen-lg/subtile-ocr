@@ -30,7 +30,7 @@ use subtile::{
 use thiserror::Error;
 
 /// Gather different `Error`s in a dedicated enum.
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("failed to create a rayon ThreadPool")]
