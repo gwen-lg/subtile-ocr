@@ -1,7 +1,7 @@
 //! Application to run OCR on a subtitles image format (like `VobSub`)
 
-use anyhow::Context;
-use clap::Parser;
+use anyhow::Context as _;
+use clap::Parser as _;
 use log::LevelFilter;
 use subtile_ocr::{run, Opt};
 

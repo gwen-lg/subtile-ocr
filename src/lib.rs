@@ -8,7 +8,7 @@ pub use crate::{ocr::process, ocr::Error as OcrError, ocr::OcrOpt, opt::Opt};
 use image::GrayImage;
 use log::warn;
 use rayon::{
-    iter::{IntoParallelRefIterator, ParallelIterator},
+    iter::{IntoParallelRefIterator as _, ParallelIterator as _},
     ThreadPoolBuildError,
 };
 use std::{
@@ -17,7 +17,7 @@ use std::{
     path::{Path, PathBuf},
 };
 use subtile::{
-    image::{dump_images, luma_a_to_luma, ToImage, ToOcrImage, ToOcrImageOpt},
+    image::{dump_images, luma_a_to_luma, ToImage as _, ToOcrImage as _, ToOcrImageOpt},
     pgs::{self, DecodeTimeImage, RleToImage},
     srt,
     time::TimeSpan,
