@@ -10,3 +10,9 @@ keys = ["dependencies", "lints.rust", "lints.clippy"]
 
 [rule.formatting]
 reorder_keys = true
+
+[[rule]]
+include = ["clippy.toml"]
+
+[rule.formatting]
+reorder_arrays = true
