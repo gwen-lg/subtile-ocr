@@ -83,6 +83,7 @@ fn parse_key_val(s: &str) -> Result<(Variable, String), Error> {
     ))
 }
 
+#[expect(clippy::too_many_lines)]
 fn parse_tesseract_variable(s: impl AsRef<str>) -> Result<Variable, Error> {
     Ok(match s.as_ref() {
         "classify_num_cp_levels" => Variable::ClassifyNumCpLevels,
