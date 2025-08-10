@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.6](https://github.com/gwen-lg/subtile-ocr/compare/v0.2.5...v0.2.6) - 2025-08-10
+
+### Fixed
+
+- fix invalid lint in Cargo.toml
+
+### Other
+
+- run cargo update
+- enable additionnal lints
+- enable `reorder_arrays` formatting rule for clippy.toml
+- allow multiple version multiple versions for dependency `windows_i686_gnullvm`
+- enable lint `significant-drop-tightening`
+- use a dedicated function to write_to_file
+- enable single_match_else lint
+- enable lint `too_many_lined`
+- enable unused_trait_names clippy lint
+- declare some lint as `warn` instead of `deny`
+- add toml lint check with Taplo
+- include all root `.toml` file for taplo
+- failed ci check on warning
+- enable `unnecessary_wraps` clippy lint
+- enable allow_attributes clippy lint
+- use `Option<&T>` instead of `&Option<T>` for fn write_srt
+- remove unnecessary semicolon and enable clippy lint
+- fix missing backticks for `SupParser`
+
 ## [0.2.5](https://github.com/gwen-lg/subtile-ocr/compare/v0.2.4...v0.2.5) - 2025-07-24
 
 ### Added
