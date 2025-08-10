@@ -276,24 +276,21 @@ where
 
 #[profiling::function]
 fn write_srt(path: Option<&Path>, subtitles: &[(TimeSpan, String)]) -> Result<(), Error> {
-    match &path {
-        Some(path) => {
-            let mkerr = |source| Error::WriteSrtFile {
-                path: path.to_path_buf(),
-                source,
-            };
+    if let Some(path) = &path {
+        let mkerr = |source| Error::WriteSrtFile {
+            path: path.to_path_buf(),
+            source,
+        };
 
-            // Write to file.
-            let subtitle_file = File::create(path).map_err(mkerr)?;
-            let mut stream = BufWriter::new(subtitle_file);
-            srt::write_srt(&mut stream, subtitles).map_err(mkerr)?;
-        }
-        None => {
-            // Write to stdout.
-            let mut stdout = io::stdout();
-            srt::write_srt(&mut stdout, subtitles)
-                .map_err(|source| Error::WriteSrtStdout { source })?;
-        }
+        // Write to file.
+        let subtitle_file = File::create(path).map_err(mkerr)?;
+        let mut stream = BufWriter::new(subtitle_file);
+        srt::write_srt(&mut stream, subtitles).map_err(mkerr)?;
+    } else {
+        // Write to stdout.
+        let mut stdout = io::stdout();
+        srt::write_srt(&mut stdout, subtitles)
+            .map_err(|source| Error::WriteSrtStdout { source })?;
     }
     Ok(())
 }
