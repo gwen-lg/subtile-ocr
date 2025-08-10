@@ -1,4 +1,4 @@
-include = ["Cargo.toml"]
+include = ["*.toml"]
 
 [formatting]
 indent_string = "    "
