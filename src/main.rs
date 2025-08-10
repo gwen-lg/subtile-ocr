@@ -67,8 +67,7 @@ mod puffin_profiling {
 
         fs::create_dir_all("perf")?;
         let mut file = BufWriter::new(File::create(filename)?);
-        let frame_view = global_frame_view.lock();
-        (*frame_view).write(&mut file)?;
+        (*global_frame_view.lock()).write(&mut file)?;
         Ok(())
     }
 }
