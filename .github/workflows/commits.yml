@@ -21,7 +21,7 @@ env:
   RUSTDOCFLAGS: -D warnings
 
 jobs:
-  check-comventional-commits:
+  check-conventional-commits:
     name: Check Conventional Commits
     runs-on: ubuntu-latest
     steps:
