@@ -67,3 +67,22 @@ jobs:
       - uses: actions/checkout@v6
       - name: Check spelling
         uses: crate-ci/typos@master
+
+  toml_checks:
+    runs-on: ubuntu-latest
+    name: Toml check
+    steps:
+      - uses: actions/checkout@v6
+      - name: "Taplo .toml formatting"
+        if: $${{ always() }}
+        uses: gwen-lg/taplo-action@v1
+        with:
+          format: true
+          lint: false
+
+      - name: "Taplo .toml lint"
+        if: $${{ always() }}
+        uses: gwen-lg/taplo-action@v1
+        with:
+          format: false
+          lint: true

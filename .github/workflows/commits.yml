@@ -85,3 +85,29 @@ jobs:
           ref: "${{ matrix.commit.id }}"
       - name: Check spelling
         uses: crate-ci/typos@master
+
+  check-taplo-push-commits:
+    if: ${{ github.event_name == 'push' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        commit: ${{ github.event.commits }}
+    name: "Toml checks for: ${{ matrix.commit.message }} "
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: "${{ matrix.commit.id }}"
+      - name: "Taplo .toml formatting"
+        if: $${{ always() }}
+        uses: gwen-lg/taplo-action@v1
+        with:
+          format: true
+          lint: false
+
+      - name: "Taplo .toml lint"
+        if: $${{ always() }}
+        uses: gwen-lg/taplo-action@v1
+        with:
+          format: false
+          lint: true

@@ -9,22 +9,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: "Taplo .toml formatting"
-      id: taplo_toml_fmt
-      if: $${{ always() }}
-      uses: gwen-lg/taplo-action@v1
-      with:
-        format: true
-        lint: false
-
-    - name: "Taplo .toml lint"
-      id: taplo_toml_lint
-      if: $${{ always() }}
-      uses: gwen-lg/taplo-action@v1
-      with:
-        format: false
-        lint: true
-
     - name: "Cargo formatting"
       id: cargo_fmt
       if: $${{ always() }}
@@ -59,8 +43,6 @@ runs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "|Job|Status|" >> $GITHUB_STEP_SUMMARY
         echo "|---|------|" >> $GITHUB_STEP_SUMMARY
-        echo "|Taplo fmt|${{ steps.taplo_toml_fmt.outcome }}|" >> $GITHUB_STEP_SUMMARY
-        echo "|Taplo lint|${{ steps.taplo_toml_lint.outcome }}|" >> $GITHUB_STEP_SUMMARY
         echo "|Cargo fmt|${{ steps.cargo_fmt.outcome }}|" >> $GITHUB_STEP_SUMMARY
         echo "|Cargo clippy|${{ steps.cargo_clippy.outcome }}|" >> $GITHUB_STEP_SUMMARY
         echo "|Cargo doc|${{ steps.cargo_doc.outcome }}|" >> $GITHUB_STEP_SUMMARY
