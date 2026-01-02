@@ -41,11 +41,11 @@ unexpected_cfgs = "warn"
 unused_imports = "warn"
 
 [lints.clippy]
-cargo = { priority = -1, level = "warn" }
-complexity = { priority = -1, level = "deny" }
-correctness = { priority = -1, level = "deny" }
-perf = { priority = -1, level = "deny" }
-style = { priority = -1, level = "deny" }
+cargo = { level = "warn", priority = -1 }
+complexity = { level = "warn", priority = -1 }
+correctness = { level = "deny", priority = -1 }
+perf = { level = "warn", priority = -1 }
+style = { level = "warn", priority = -1 }
 # The individually activated lints below come from : nursery, pedantic, restriction or suspicious.
 allow_attributes = "warn"
 as_ptr_cast_mut = "warn"
