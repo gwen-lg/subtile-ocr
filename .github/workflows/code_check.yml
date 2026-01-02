@@ -59,3 +59,11 @@ jobs:
         uses: ./.github/actions/checks
         with:
           features: --features ${{ matrix.features }}
+
+  typos_checks:
+    runs-on: ubuntu-latest
+    name: Typos check spelling
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check spelling
+        uses: crate-ci/typos@master
