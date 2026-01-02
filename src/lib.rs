@@ -3,13 +3,13 @@
 mod ocr;
 mod opt;
 
-pub use crate::{ocr::process, ocr::Error as OcrError, ocr::OcrOpt, opt::Opt};
+pub use crate::{ocr::Error as OcrError, ocr::OcrOpt, ocr::process, opt::Opt};
 
 use image::GrayImage;
 use log::warn;
 use rayon::{
-    iter::{IntoParallelRefIterator as _, ParallelIterator as _},
     ThreadPoolBuildError,
+    iter::{IntoParallelRefIterator as _, ParallelIterator as _},
 };
 use std::{
     fs::File,
@@ -17,15 +17,15 @@ use std::{
     path::{Path, PathBuf},
 };
 use subtile::{
-    image::{dump_images, luma_a_to_luma, ToImage as _, ToOcrImage as _, ToOcrImageOpt},
+    SubtileError,
+    image::{ToImage as _, ToOcrImage as _, ToOcrImageOpt, dump_images, luma_a_to_luma},
     pgs::{self, DecodeTimeImage, PgsError, RleToImage},
     srt,
     time::TimeSpan,
     vobsub::{
-        self, conv_to_rgba, palette_rgb_to_luminance, VobSubError, VobSubIndexedImage,
-        VobSubOcrImage, VobSubToImage,
+        self, VobSubError, VobSubIndexedImage, VobSubOcrImage, VobSubToImage, conv_to_rgba,
+        palette_rgb_to_luminance,
     },
-    SubtileError,
 };
 use thiserror::Error;
 

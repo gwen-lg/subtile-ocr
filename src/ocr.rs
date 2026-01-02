@@ -2,9 +2,9 @@ use std::{cell::RefCell, io::Cursor, str::Utf8Error};
 
 use image::{DynamicImage, GrayImage};
 use leptess::{
+    LepTess, Variable,
     leptonica::PixError,
     tesseract::{TessInitError, TessSetVariableError},
-    LepTess, Variable,
 };
 use log::trace;
 use rayon::{broadcast, prelude::*};

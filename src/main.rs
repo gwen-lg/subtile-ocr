@@ -3,7 +3,7 @@
 use anyhow::Context as _;
 use clap::Parser as _;
 use log::LevelFilter;
-use subtile_ocr::{run, Opt};
+use subtile_ocr::{Opt, run};
 
 #[cfg(not(feature = "profile-with-puffin"))]
 use no_profiling as prof;
