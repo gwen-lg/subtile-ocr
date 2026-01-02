@@ -25,9 +25,9 @@ leptess = "0.14"
 log = "0.4"
 profiling = "1.0"
 puffin = { version = "0.19", features = ["serialization"], optional = true }
-rayon = "1.10"
+rayon = "1.11"
 scoped-tls-hkt = "0.1"
-simple_logger = { version = "5.0", features = ["colors"] }
+simple_logger = { version = "5.1", features = ["colors"] }
 subtile = "0.4"
 thiserror = "2.0"
 
