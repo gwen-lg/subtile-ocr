@@ -311,3 +311,21 @@ fn write_to_file(path: &Path, subtitles: &[(TimeSpan, String)]) -> Result<(), io
     let mut stream = BufWriter::new(subtitle_file);
     srt::write_srt(&mut stream, subtitles)
 }
+
+#[cfg(test)]
+mod tests {
+    use clap::Parser as _;
+
+    use crate::Opt;
+
+    #[test]
+    fn parse_file_with_missing_image() {
+        let opt = Opt::parse_from(vec![
+            "subtile-ocr",
+            "fixtures/sequence_without_ods.sup",
+            "--lang",
+            "eng",
+        ]);
+        crate::process_pgs(&opt).expect("Process pgs file '' shouldn't return error");
+    }
+}
