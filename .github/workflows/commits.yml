@@ -70,3 +70,18 @@ jobs:
         uses: ./.github/actions/checks
         with:
           features: --features ${{ matrix.features }}
+
+  check-typos-push-commits:
+    if: ${{ github.event_name == 'push' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        commit: ${{ github.event.commits }}
+    name: "Typos for: ${{ matrix.commit.message }} "
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: "${{ matrix.commit.id }}"
+      - name: Check spelling
+        uses: crate-ci/typos@master
