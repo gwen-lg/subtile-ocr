@@ -18,7 +18,7 @@ use std::{
 };
 use subtile::{
     image::{dump_images, luma_a_to_luma, ToImage as _, ToOcrImage as _, ToOcrImageOpt},
-    pgs::{self, DecodeTimeImage, RleToImage},
+    pgs::{self, DecodeTimeImage, PgsError, RleToImage},
     srt,
     time::TimeSpan,
     vobsub::{
@@ -147,6 +147,8 @@ pub fn process_pgs(opt: &Opt) -> Result<(Vec<TimeSpan>, Vec<GrayImage>), Error> 
     let (times, rle_images) = {
         profiling::scope!("Parse PGS file");
         parser
+            .enumerate()
+            .filter_map(log_and_ignore_missing_image)
             .collect::<Result<(Vec<_>, Vec<_>), _>>()
             .map_err(Error::PgsParsing)?
     };
@@ -170,6 +172,19 @@ pub fn process_pgs(opt: &Opt) -> Result<(Vec<TimeSpan>, Vec<GrayImage>), Error> 
     };
 
     Ok((times, images))
+}
+
+fn log_and_ignore_missing_image(
+    (idx, sub): (usize, Result<(TimeSpan, pgs::RleEncodedImage), PgsError>),
+) -> Option<Result<(TimeSpan, pgs::RleEncodedImage), PgsError>> {
+    match sub {
+        Ok(sub_data) => Some(Ok(sub_data)),
+        Err(PgsError::MissingImage) => {
+            log::warn!("sub at index `{idx}` ignored: missing image");
+            None
+        }
+        Err(err) => Some(Err(err)),
+    }
 }
 
 /// Process `VobSub` subtitle file
