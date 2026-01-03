@@ -2,7 +2,7 @@
 name = "subtile-ocr"
 version = "0.2.6"
 authors = ["Eliza Velasquez", "Gwen Lg <me@gwenlg.fr>"]
-edition = "2021"
+edition = "2024"
 description = "Converts DVD VOB subtitles to SRT subtitles with Tesseract OCR"
 license = "GPL-3.0"
 keywords = ["vobsub", "subtitles", "dvd", "ocr", "pgs"]

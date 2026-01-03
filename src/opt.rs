@@ -1,5 +1,5 @@
-use clap::{crate_description, crate_name, crate_version};
 use clap::{Parser, ValueHint};
+use clap::{crate_description, crate_name, crate_version};
 use leptess::Variable;
 use std::path::PathBuf;
 use thiserror::Error;
@@ -737,7 +737,7 @@ fn parse_tesseract_variable(s: impl AsRef<str>) -> Result<Variable, Error> {
         _ => {
             return Err(Error::TesseractVariableName {
                 value: s.as_ref().to_owned(),
-            })
+            });
         }
     })
 }

@@ -2,9 +2,9 @@ use std::{cell::RefCell, io::Cursor, str::Utf8Error};
 
 use image::{DynamicImage, GrayImage};
 use leptess::{
+    LepTess, Variable,
     leptonica::PixError,
     tesseract::{TessInitError, TessSetVariableError},
-    LepTess, Variable,
 };
 use log::trace;
 use rayon::{broadcast, prelude::*};
@@ -76,7 +76,10 @@ pub fn process<Img>(images: Img, opt: &OcrOpt) -> Result<Vec<Result<String>>>
 where
     Img: IntoParallelIterator<Item = GrayImage>,
 {
-    std::env::set_var("OMP_THREAD_LIMIT", "1");
+    // SAFETY:
+    // As env var is set before initialize TesseractWrapper,
+    // It should be okay to set the environment variable `OMP_THREAD_LIMIT`.
+    unsafe { std::env::set_var("OMP_THREAD_LIMIT", "1") };
 
     // Init tesseract on the main thread:
     let tesseract = TesseractWrapper::new(opt.tessdata_dir.as_deref(), opt.lang, opt.config)?;
